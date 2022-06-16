@@ -1,0 +1,31 @@
+{
+    "name": "reliability_test",
+    "version": "1.0.0",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "nodemon app.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kittnan/backend_reliability_test.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/kittnan/backend_reliability_test/issues"
+    },
+    "homepage": "https://github.com/kittnan/backend_reliability_test#readme",
+    "dependencies": {
+        "body-parser": "^1.20.0",
+        "cors": "^2.8.5",
+        "express": "^4.18.1",
+        "express-fileupload": "^1.4.0",
+        "mongoose": "^6.3.8",
+        "nodemailer": "^6.7.5"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.16"
+    }
+}
