@@ -1,10 +1,10 @@
 let express = require("express");
 let router = express.Router();
 
-const department = require("../models/department");
+const section = require("../models/section");
 
 router.get("", (req, res, next) => {
-    department.find({}).exec((err, result) => {
+    section.find({}).exec((err, result) => {
         if (err) {
             res.json(err);
         } else {
@@ -13,8 +13,8 @@ router.get("", (req, res, next) => {
     });
 });
 
-router.post("/insert", (req, res, next) => {
-    department.insertMany(req.body, (err, result) => {
+router.post("/insert", async(req, res, next) => {
+    section.insertMany(req.body, (err, result) => {
         if (err) {
             res.json(err);
         } else {
@@ -26,7 +26,7 @@ router.post("/insert", (req, res, next) => {
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
-    department.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
+    section.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
         if (err) {
             res.json(err);
         } else {
@@ -37,7 +37,7 @@ router.put("/update/:id", (req, res, next) => {
 
 router.delete("/delete/:id", (req, res, next) => {
     const { id } = req.params;
-    department.deleteOne({ _id: id }).exec((err, result) => {
+    section.deleteOne({ _id: id }).exec((err, result) => {
         if (err) {
             res.json(err);
         } else {

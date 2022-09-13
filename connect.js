@@ -7,7 +7,7 @@
 
 var mongoose = require('mongoose');
 // mongoose.connect('mongodb://10.200.90.152:27017/AEProject', { useNewUrlParser: true, useUnifiedTopology: true });
-mongoose.connect('mongodb://boat:boat@localhost/reliability', { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
+mongoose.connect(process.env.DATABASE, { useNewUrlParser: true, useUnifiedTopology: true }, (err, db) => {
     if (err) throw err
     console.log(`connect db success`);
 });

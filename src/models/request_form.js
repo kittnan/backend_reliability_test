@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const request_form = new Schema({
+    requestNo: String,
     step1: {
         controlNo: {
             type: String,
@@ -60,12 +61,12 @@ const request_form = new Schema({
     step3: [{}],
     step4: {
         userRequest: {
-            name: String,
+            name: {},
             status: Boolean,
             time: Date,
         },
         userApprove: {
-            name: String,
+            name: {},
             status: Boolean,
             time: Date,
         },

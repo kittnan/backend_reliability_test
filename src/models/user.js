@@ -21,7 +21,12 @@ const User = new Schema({
     email: {
         type: String,
     },
-    authorize: {
+    authorize: [],
+    department: {
+        type: String,
+        required: true
+    },
+    section: {
         type: String,
         required: true
     },

@@ -14,14 +14,51 @@ router.get("", (req, res, next) => {
 });
 
 router.post("/insert", async(req, res, next) => {
-    request_form.insertMany(req.body, (err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
-    });
+    let body = req.body;
+    const result = await request_form.aggregate([{
+        $match: {
+            "step1.controlNo": body.step1.controlNo,
+        },
+    }, ]);
+    if (result.length > 0) {
+        const result = await request_form
+            .aggregate([])
+            .sort({ createdAt: -1 })
+            .limit(1);
+        body.step1.controlNo = await genControlNo(result[0]);
+        request_form.insertMany(body, (err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+    } else {
+        request_form.insertMany(body, (err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+    }
 });
+
+function genControlNo(result) {
+    return new Promise((resolve) => {
+        const res_split = result.step1.controlNo.split("-");
+        let newControlNo = (
+            Number(res_split[3]) + 1
+        ).toString();
+        newControlNo.length === 1 ?
+            (newControlNo = "00" + newControlNo) :
+            newControlNo;
+        newControlNo.length === 2 ?
+            (newControlNo = "0" + newControlNo) :
+            newControlNo;
+        resolve(`${res_split[0]}-${res_split[1]}-${res_split[2]}-${newControlNo}-${res_split[4]}-${res_split[5]}`);
+    });
+}
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;

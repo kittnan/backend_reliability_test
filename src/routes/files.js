@@ -4,18 +4,16 @@ const fs = require("fs/promises");
 var fileUpload = require("express-fileupload");
 router.use(fileUpload());
 
-const directoryPath = "C:/xampp/htdocs/uploads";
-const address = "http://127.0.0.1:80/uploads";
 
 router.post("/upload", (req, res, next) => {
-    let files = req.files.File;
+    let files = req.files.Files;
     if (files.length > 0) {
         const temp = files.map((file) => {
             const typeFile = file.name.split(".")[1];
             const newName = file.name.split(".")[0];
             const dateTime = new Date().getTime();
-            const saveDirectory = `${directoryPath}/${newName}${dateTime}.${typeFile}`;
-            const pathDirectory = `${address}/${newName}${dateTime}.${typeFile}`;
+            const saveDirectory = `${process.env.PATH_IMAGE}/${newName}${dateTime}.${typeFile}`;
+            const pathDirectory = `${process.env.URL_DOWNLOAD}/${newName}${dateTime}.${typeFile}`;
             file.mv(saveDirectory);
             return {
                 name: file.name,
@@ -25,17 +23,9 @@ router.post("/upload", (req, res, next) => {
         });
         res.json(temp);
     } else {
-        const typeFile = files.name.split(".")[1];
-        const newName = files.name.split(".")[0];
-        const dateTime = new Date().getTime();
-        const saveDirectory = `${directoryPath}/${newName}${dateTime}.${typeFile}`;
-        const pathDirectory = `${address}/${newName}${dateTime}.${typeFile}`;
-        files.mv(saveDirectory);
         res.json({
-            name: files.name,
-            size: files.size,
-            path: pathDirectory,
-        });
+            msg: 'no files'
+        })
     }
 });
 

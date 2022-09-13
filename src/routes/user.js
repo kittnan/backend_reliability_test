@@ -25,8 +25,18 @@ router.get("/", (req, res, next) => {
     });
 });
 router.get("/id/:id", (req, res, next) => {
-    const { id } = req.params
+    const { id } = req.params;
     User.findById(id).exec((err, result) => {
+        if (err) {
+            res.json(err);
+        } else {
+            res.json(result);
+        }
+    });
+});
+router.get("/section/:section", (req, res, next) => {
+    const { section } = req.params;
+    User.find({ section: section }).exec((err, result) => {
         if (err) {
             res.json(err);
         } else {
