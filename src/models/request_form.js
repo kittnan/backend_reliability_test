@@ -58,19 +58,8 @@ const request_form = new Schema({
         description: {},
         purpose: String,
     },
-    step3: [{}],
-    step4: {
-        userRequest: {
-            name: {},
-            status: Boolean,
-            time: Date,
-        },
-        userApprove: {
-            name: {},
-            status: Boolean,
-            time: Date,
-        },
-    },
+    step3: [],
+    step4: [],
     status: {
         type: String
     }

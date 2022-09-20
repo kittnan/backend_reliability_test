@@ -17,6 +17,7 @@ let testing_type_master = require("./src/routes/testing_type_master");
 let interval_master = require("./src/routes/interval_master");
 let request_form = require("./src/routes/request_form");
 let files = require("./src/routes/files");
+let log_flow = require("./src/routes/log_flow");
 const port = process.env.PORT;
 const server = app.listen(port, () => {
     console.log("Listening on  port " + server.address().port);
@@ -33,5 +34,6 @@ app.use("/testing_type_master", testing_type_master);
 app.use("/interval_master", interval_master);
 app.use("/request_form", request_form);
 app.use("/files", files);
+app.use("/log_flow", log_flow);
 
 module.exports = app;
