@@ -28,26 +28,54 @@ router.post("/getByCondition/", (req, res, next) => {
     let match = {
         $match: {},
     };
-    if (payload && payload.status && payload.status.length > 0) {
-        const temp = {
-            status: {
-                '$nin': payload.status,
-            },
-        };
-        match["$match"] = {
-            ...temp,
-            ...match["$match"]
-        };
+    if (payload && payload.action && payload.status) {
+        if (payload.action == "nin") {
+            const temp = {
+                status: {
+                    $nin: payload.status,
+                },
+            };
+            match["$match"] = {
+                ...temp,
+                ...match["$match"],
+            };
+        }
+        if (payload.action == "in") {
+            const temp = {
+                status: {
+                    $in: payload.status,
+                },
+            };
+            match["$match"] = {
+                ...temp,
+                ...match["$match"],
+            };
+        }
+        if (payload.action == "all") {
+            match["$match"] = {};
+        }
     }
+    // if (payload && payload.status && payload.status.length > 0) {
+    //     const temp = {
+    //         status: {
+    //             '$nin': payload.status,
+    //         },
+    //     };
+    //     match["$match"] = {
+    //         ...temp,
+    //         ...match["$match"]
+    //     };
+    // }
     if (payload && payload._id) {
         const temp = {
             "step4.name._id": payload._id,
         };
         match["$match"] = {
             ...temp,
-            ...match["$match"]
+            ...match["$match"],
         };
     }
+    console.log(match);
     request_form.aggregate([{...match }]).exec((err, result) => {
         if (err) {
             res.json(err);
