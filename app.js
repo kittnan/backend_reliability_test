@@ -3,6 +3,9 @@ let express = require("express");
 let bodyParser = require("body-parser");
 let cors = require("cors");
 let app = express();
+let morgan = require("morgan");
+const NodeCache = require("node-cache");
+const myCache = new NodeCache({ stdTTL: 100, checkperiod: 120 });
 app.use(bodyParser.json());
 app.use(cors());
 let mongoose = require("./connect");
@@ -19,11 +22,14 @@ let interval_master = require("./src/routes/interval_master");
 let request_form = require("./src/routes/request_form");
 let files = require("./src/routes/files");
 let log_flow = require("./src/routes/log_flow");
+
 const port = process.env.PORT;
 const server = app.listen(port, () => {
     console.log("Listening on  port " + server.address().port);
 });
 
+
+app.use(morgan("tiny"));
 app.use("/user", user);
 // app.use('/request', request)
 app.use("/authorize_master", authorize_master);

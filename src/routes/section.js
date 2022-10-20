@@ -3,6 +3,8 @@ let router = express.Router();
 
 const section = require("../models/section");
 
+
+
 router.get("", (req, res, next) => {
     section.find({}).exec((err, result) => {
         if (err) {
@@ -22,7 +24,6 @@ router.post("/insert", async(req, res, next) => {
         }
     });
 });
-
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
@@ -45,6 +46,5 @@ router.delete("/delete/:id", (req, res, next) => {
         }
     });
 });
-
 
 module.exports = router;
