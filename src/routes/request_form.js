@@ -8,6 +8,8 @@ const formStep3TestingType = require("../models/form-step3-testingType");
 const formStep4TestingCondition = require("../models/form-step4-testingCondition");
 const formStep5UserApprove = require("../models/form-step5-userApprove");
 
+const ObjectId = require('mongodb').ObjectID;
+
 router.get("", (req, res, next) => {
     request_form.find({}).exec((err, result) => {
         if (err) {
@@ -19,12 +21,213 @@ router.get("", (req, res, next) => {
 });
 router.get("/id/:id", (req, res, next) => {
     const { id } = req.params;
-    request_form.findById(id).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
+
+    const condition = [{
+            $match: {
+                _id: ObjectId(id)
+            },
+        },
+        {
+            $project: {
+                _id: {
+                    $toString: "$_id",
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep1details",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step1",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep2testpurposes",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step2",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep3testingtypes",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step3",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep4testingconditions",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step4",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep5userapproves",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step5",
+            },
+        },
+
+    ];
+
+    request_form.aggregate(condition).exec((err, result) => {
+        if (err) res.json(err)
+        res.json(result)
+    })
+});
+
+router.get(
+    "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
+    (req, res, next) => {
+        const { userId, status, limit, skip, sort, count } = req.params;
+        console.log(req.params);
+        const newStatus = JSON.parse(status);
+        console.log(newStatus);
+        let condition = [{
+                $match: {
+                    userId: userId,
+                    status: {
+                        $in: newStatus,
+                    },
+                },
+            },
+            {
+                $project: {
+                    _id: {
+                        $toString: "$_id",
+                    },
+                    status: "$status",
+                    createdAt: "$createdAt",
+                    updatedAt: "$updatedAt",
+                    corporate: "$corporate",
+                },
+            },
+            {
+                $lookup: {
+                    from: "formstep1details",
+                    localField: "_id",
+                    foreignField: "requestId",
+                    as: "step1",
+                },
+            },
+            {
+                $project: {
+                    _id: "$_id",
+                    controlNo: {
+                        $first: "$step1.controlNo",
+                    },
+                    lotNo: {
+                        $first: "$step1.lotNo",
+                    },
+                    modelNo: {
+                        $first: "$step1.modelNo",
+                    },
+                    status: "$status",
+                    createdAt: "$createdAt",
+                    updatedAt: "$updatedAt",
+                    corporate: "$corporate",
+                },
+            },
+            {
+                $lookup: {
+                    from: "formstep5userapproves",
+                    localField: "_id",
+                    foreignField: "requestId",
+                    as: "step5",
+                },
+            },
+        ];
+
+        if (count == 1) {
+            condition.push({
+                $count: "count",
+            });
         }
+        let newLimit = limit;
+        if (limit == 0) {
+            newLimit = BigInt(Number.MAX_SAFE_INTEGER);
+        }
+        request_form
+            .aggregate(condition)
+            .sort({ createdAt: parseInt(sort) })
+            .skip(parseInt(skip))
+            .limit(Number(newLimit))
+            .exec((err, result) => {
+                if (err) res.json(err);
+                res.json(result);
+            });
+    }
+);
+
+router.get("/condition/:userId/:status", (req, res, next) => {
+    let { userId, status } = req.params;
+    status = JSON.parse(status);
+    const condition = [{
+            $match: {
+                userId: userId,
+                status: {
+                    $in: status,
+                },
+            },
+        },
+        {
+            $project: {
+                _id: {
+                    $toString: "$_id",
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep1details",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step1",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep2testpurposes",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step2",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep3testingtypes",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step3",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep4testingconditions",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step4",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep5userapproves",
+                localField: "_id",
+                foreignField: "requestId",
+                as: "step5",
+            },
+        },
+    ];
+    request_form.aggregate(condition).exec((err, result) => {
+        if (err) res.json(err);
+        res.json(result);
     });
 });
 
@@ -73,7 +276,7 @@ router.post("/getByCondition/", (req, res, next) => {
     // }
     if (payload && payload._id) {
         const temp = {
-            "step4.name._id": payload._id,
+            userId: payload._id,
         };
         match["$match"] = {
             ...temp,
@@ -92,6 +295,7 @@ router.post("/getByCondition/", (req, res, next) => {
 
 router.post("/insert", async(req, res, next) => {
     let payload = req.body;
+    // console.log(payload);
     const resultDuplicate = await checkDuplicateRequestNo(
         payload.detail.controlNo
     );
@@ -100,17 +304,31 @@ router.post("/insert", async(req, res, next) => {
         newControlNo = payload.detail.controlNo;
     } else {
         const splitStr = payload.detail.controlNo.split("-");
-        const oldControlNo = splitStr[3];
+        const lastRecord = await request_form
+            .aggregate([{
+                $match: {
+                    corporate: splitStr[0].toLowerCase(),
+                },
+            }, ])
+            .sort({ createdAt: -1 })
+            .limit(1);
+        // console.log(lastRecord);
+        // const oldControlNo = splitStr[3];
+        const oldControlNo = lastRecord[0].controlNo.split("-")[3];
         const oldControlNoNum = Number(oldControlNo) + 1;
         const oldControlNoStr = oldControlNoNum.toString();
         let temp = "";
-        if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr
-        if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr
+        if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
+        if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
         newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}-${splitStr[5]}`;
     }
 
     payload.detail.controlNo = newControlNo;
     const createRequestFormResult = await createRequestForm(payload);
+    const result_files = await filesManage(
+        createRequestFormResult,
+        payload.detail.files
+    );
     const createFormStep1Result = await createFormStep1Detail(
         payload,
         createRequestFormResult._id
@@ -134,7 +352,7 @@ router.post("/insert", async(req, res, next) => {
     // console.log(createFormStep1Result);
     // console.log(createFormStep2Result);
     // res.statusCode = 200;
-    res.sendStatus(200);
+    res.json(createRequestFormResult);
 });
 
 async function checkDuplicateRequestNo(controlNo) {
@@ -152,9 +370,16 @@ async function createRequestForm(body) {
         userId: body.request._id,
         date: new Date(),
         controlNo: body.detail.controlNo,
+        corporate: body.detail.corporate,
+        status: "request",
     };
     return await request_form.create(data);
 }
+
+async function filesManage(request, files) {
+    console.log(request, files);
+}
+
 async function createFormStep1Detail(body, requestId) {
     const data = {
         requestId: requestId,
@@ -256,7 +481,7 @@ router.put("/update/:id", (req, res, next) => {
 router.delete("/delete/:id", async(req, res, next) => {
     const { id } = req.params;
     let arr = [];
-    arr.push(await request_form.deleteMany({ requestId: id }));
+    arr.push(await request_form.deleteMany({ _id: id }));
     arr.push(await formStep1Detail.deleteMany({ requestId: id }));
     arr.push(await formStep2TestPurpose.deleteMany({ requestId: id }));
     arr.push(await formStep3TestingType.deleteMany({ requestId: id }));
@@ -275,7 +500,7 @@ router.post("/count", (req, res, next) => {
                 createdAt: {
                     $gte: new Date(req.body.date),
                 },
-                "step1.corporate": {
+                corporate: {
                     $eq: req.body.corporate,
                 },
             },

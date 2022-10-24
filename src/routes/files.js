@@ -9,13 +9,13 @@ router.post("/upload", (req, res, next) => {
     if (files.length > 0) {
         const temp = files.map((file) => {
             const typeFile = file.name.split(".")[1];
-            const newName = file.name.split(".")[0];
+            const newName = file.name.split(".")[0] + new Date().getTime().toString();
             const dateTime = new Date().getTime();
             const saveDirectory = `${process.env.PATH_IMAGE}/${newName}.${typeFile}`;
             const pathDirectory = `${process.env.URL_DOWNLOAD}/${newName}.${typeFile}`;
             file.mv(saveDirectory);
             return {
-                name: file.name,
+                name: `${newName}.${typeFile}`,
                 size: file.size,
                 path: pathDirectory,
             };
@@ -23,13 +23,13 @@ router.post("/upload", (req, res, next) => {
         res.json(temp);
     } else if (files.length == null) {
         const typeFile = files.name.split(".")[1];
-        const newName = files.name.split(".")[0];
+        const newName = files.name.split(".")[0] + new Date().getTime().toString();
         const dateTime = new Date().getTime();
         const saveDirectory = `${process.env.PATH_IMAGE}/${newName}.${typeFile}`;
         const pathDirectory = `${process.env.URL_DOWNLOAD}/${newName}.${typeFile}`;
         files.mv(saveDirectory);
         const temp = [{
-            name: files.name,
+            name: `${newName}.${typeFile}`,
             size: files.size,
             path: pathDirectory,
         }, ];
