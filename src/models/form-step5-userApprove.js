@@ -5,7 +5,10 @@ const formStep5UserApprove = new Schema({
     requestId: String,
     authorize: String,
     userId: String,
-    dateApprove: Date
+    userName: String,
+    statusApprove: Boolean,
+    dateApprove: Date,
+    level: Number
 }, { timestamps: true, versionKey: false, strict: true });
 
 const UserModule = mongoose.model("formStep5UserApprove", formStep5UserApprove);

@@ -5,8 +5,8 @@ var fileUpload = require("express-fileupload");
 router.use(fileUpload());
 
 router.post("/upload", (req, res, next) => {
-    let files = req.files.Files;
-    if (files.length > 0) {
+    if (req.files && req.files.Files.length > 0) {
+        let files = req.files.Files;
         const temp = files.map((file) => {
             const typeFile = file.name.split(".")[1];
             const newName = file.name.split(".")[0] + new Date().getTime().toString();
@@ -21,7 +21,8 @@ router.post("/upload", (req, res, next) => {
             };
         });
         res.json(temp);
-    } else if (files.length == null) {
+    } else if (req.files && req.files.Files.length == null) {
+        let files = req.files.Files;
         const typeFile = files.name.split(".")[1];
         const newName = files.name.split(".")[0] + new Date().getTime().toString();
         const dateTime = new Date().getTime();

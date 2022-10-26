@@ -7,8 +7,9 @@ const formStep2TestPurpose = require("../models/form-step2-testPurpose");
 const formStep3TestingType = require("../models/form-step3-testingType");
 const formStep4TestingCondition = require("../models/form-step4-testingCondition");
 const formStep5UserApprove = require("../models/form-step5-userApprove");
+const userModel = require("../models/user");
 
-const ObjectId = require('mongodb').ObjectID;
+const ObjectId = require("mongodb").ObjectID;
 
 router.get("", (req, res, next) => {
     request_form.find({}).exec((err, result) => {
@@ -24,7 +25,7 @@ router.get("/id/:id", (req, res, next) => {
 
     const condition = [{
             $match: {
-                _id: ObjectId(id)
+                _id: ObjectId(id),
             },
         },
         {
@@ -74,95 +75,196 @@ router.get("/id/:id", (req, res, next) => {
                 as: "step5",
             },
         },
-
+        {
+            $project: {
+                step1: {
+                    $first: "$step1",
+                },
+                step2: {
+                    $first: "$step2",
+                },
+                step3: {
+                    $first: "$step3",
+                },
+                step4: {
+                    $first: "$step4",
+                },
+                step5: "$step5",
+            },
+        },
     ];
 
     request_form.aggregate(condition).exec((err, result) => {
-        if (err) res.json(err)
-        res.json(result)
-    })
+        if (err) res.json(err);
+        res.json(result);
+    });
+});
+
+router.get("/table/:userId/:status", async(req, res, next) => {
+    const { userId, status } = req.params;
+    const newStatus = JSON.parse(status);
+    const approve = await formStep5UserApprove.aggregate([{
+        $match: {
+            userId: userId,
+        },
+    }, ]);
+    const requestId = approve.map((ap) => ap.requestId);
+    console.log(requestId);
+
+    const condition = [{
+            $project: {
+                requestId: {
+                    $toString: "$_id",
+                },
+                status: "$status",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+        {
+            $match: {
+                requestId: {
+                    $in: requestId,
+                },
+                status: {
+                    $in: newStatus,
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep1details",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step1",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep5userapproves",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step5",
+            },
+        },
+        {
+            $project: {
+                requestId: "$requestId",
+                controlNo: {
+                    $first: "$step1.controlNo",
+                },
+                lotNo: {
+                    $first: "$step1.lotNo",
+                },
+                modelNo: {
+                    $first: "$step1.modelNo",
+                },
+                step5: "$step5",
+                status: "$status",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+    ];
+
+    request_form
+        .aggregate(condition)
+        .sort({ createdAt: -1 })
+        .exec((err, result) => {
+            if (err) res.json(err);
+            res.json(result);
+        });
 });
 
 router.get(
     "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
-    (req, res, next) => {
+    async(req, res, next) => {
         const { userId, status, limit, skip, sort, count } = req.params;
         console.log(req.params);
         const newStatus = JSON.parse(status);
         console.log(newStatus);
-        let condition = [{
-                $match: {
-                    userId: userId,
-                    status: {
-                        $in: newStatus,
-                    },
-                },
-            },
-            {
-                $project: {
-                    _id: {
-                        $toString: "$_id",
-                    },
-                    status: "$status",
-                    createdAt: "$createdAt",
-                    updatedAt: "$updatedAt",
-                    corporate: "$corporate",
-                },
-            },
-            {
-                $lookup: {
-                    from: "formstep1details",
-                    localField: "_id",
-                    foreignField: "requestId",
-                    as: "step1",
-                },
-            },
-            {
-                $project: {
-                    _id: "$_id",
-                    controlNo: {
-                        $first: "$step1.controlNo",
-                    },
-                    lotNo: {
-                        $first: "$step1.lotNo",
-                    },
-                    modelNo: {
-                        $first: "$step1.modelNo",
-                    },
-                    status: "$status",
-                    createdAt: "$createdAt",
-                    updatedAt: "$updatedAt",
-                    corporate: "$corporate",
-                },
-            },
-            {
-                $lookup: {
-                    from: "formstep5userapproves",
-                    localField: "_id",
-                    foreignField: "requestId",
-                    as: "step5",
-                },
-            },
-        ];
 
-        if (count == 1) {
-            condition.push({
-                $count: "count",
-            });
-        }
-        let newLimit = limit;
-        if (limit == 0) {
-            newLimit = BigInt(Number.MAX_SAFE_INTEGER);
-        }
-        request_form
-            .aggregate(condition)
-            .sort({ createdAt: parseInt(sort) })
-            .skip(parseInt(skip))
-            .limit(Number(newLimit))
-            .exec((err, result) => {
-                if (err) res.json(err);
-                res.json(result);
-            });
+        let approve = await formStep5UserApprove.aggregate([{
+            $match: {
+                userId: userId,
+            },
+        }, ]);
+
+        res.json(approve);
+
+        // let condition = [{
+        //         $match: {
+        //             userId: userId,
+        //             status: {
+        //                 $in: newStatus,
+        //             },
+        //         },
+        //     },
+        //     {
+        //         $project: {
+        //             _id: {
+        //                 $toString: "$_id",
+        //             },
+        //             status: "$status",
+        //             createdAt: "$createdAt",
+        //             updatedAt: "$updatedAt",
+        //             corporate: "$corporate",
+        //         },
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "formstep1details",
+        //             localField: "_id",
+        //             foreignField: "requestId",
+        //             as: "step1",
+        //         },
+        //     },
+        //     {
+        //         $project: {
+        //             _id: "$_id",
+        //             controlNo: {
+        //                 $first: "$step1.controlNo",
+        //             },
+        //             lotNo: {
+        //                 $first: "$step1.lotNo",
+        //             },
+        //             modelNo: {
+        //                 $first: "$step1.modelNo",
+        //             },
+        //             status: "$status",
+        //             createdAt: "$createdAt",
+        //             updatedAt: "$updatedAt",
+        //             corporate: "$corporate",
+        //         },
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "formstep5userapproves",
+        //             localField: "_id",
+        //             foreignField: "requestId",
+        //             as: "step5",
+        //         },
+        //     },
+        // ];
+
+        // if (count == 1) {
+        //     condition.push({
+        //         $count: "count",
+        //     });
+        // }
+        // let newLimit = limit;
+        // if (limit == 0) {
+        //     newLimit = BigInt(Number.MAX_SAFE_INTEGER);
+        // }
+        // request_form
+        //     .aggregate(condition)
+        //     .sort({ createdAt: parseInt(sort) })
+        //     .skip(parseInt(skip))
+        //     .limit(Number(newLimit))
+        //     .exec((err, result) => {
+        //         if (err) res.json(err);
+        //         res.json(result);
+        // });
     }
 );
 
@@ -349,6 +451,10 @@ router.post("/insert", async(req, res, next) => {
         payload,
         createRequestFormResult._id
     );
+    await createFormStep5UserRequest(
+        payload,
+        createRequestFormResult._id
+    );
     // console.log(createFormStep1Result);
     // console.log(createFormStep2Result);
     // res.statusCode = 200;
@@ -398,7 +504,7 @@ async function createFormStep2TestPurpose(body, requestId) {
 async function createFormStep3TestingType(body, requestId) {
     const data = {
         requestId: requestId,
-        ...body.testingType.data,
+        data: body.testingType.data,
     };
     return await formStep3TestingType.create(data);
 }
@@ -410,9 +516,30 @@ async function createFormStep4TestingCondition(body, requestId) {
     return await formStep4TestingCondition.create(data);
 }
 async function createFormStep5UserApprove(body, requestId) {
+    const user = await userModel.findById(body.userApprove.userId)
     const data = {
-        ...body.userApprove,
         requestId: requestId,
+        authorize: body.userApprove.authorize,
+        userId: body.userApprove.userId,
+        userName: user.name || '',
+        statusApprove: false,
+        dateApprove: null,
+        level: 2
+    };
+    return await formStep5UserApprove.create(data);
+}
+async function createFormStep5UserRequest(body, requestId) {
+    const user = await userModel.findById(body.request._id)
+
+    const data = {
+        requestId: requestId,
+        authorize: "request",
+        userId: body.request._id,
+        userName: user.name,
+        statusApprove: true,
+        dateApprove: body.userApprove.dateApprove,
+        level: 1
+
     };
     return await formStep5UserApprove.create(data);
 }
