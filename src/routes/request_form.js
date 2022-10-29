@@ -33,6 +33,7 @@ router.get("/id/:id", (req, res, next) => {
                 _id: {
                     $toString: "$_id",
                 },
+                status: "$status",
             },
         },
         {
@@ -90,6 +91,7 @@ router.get("/id/:id", (req, res, next) => {
                     $first: "$step4",
                 },
                 step5: "$step5",
+                status: "$status",
             },
         },
     ];
@@ -117,6 +119,7 @@ router.get("/table/:userId/:status", async(req, res, next) => {
                     $toString: "$_id",
                 },
                 status: "$status",
+                nextApprove: "$nextApprove",
                 createdAt: "$createdAt",
                 updatedAt: "$updatedAt",
             },
@@ -161,6 +164,7 @@ router.get("/table/:userId/:status", async(req, res, next) => {
                 },
                 step5: "$step5",
                 status: "$status",
+                nextApprove: "$nextApprove",
                 createdAt: "$createdAt",
                 updatedAt: "$updatedAt",
             },
@@ -426,35 +430,15 @@ router.post("/insert", async(req, res, next) => {
     }
 
     payload.detail.controlNo = newControlNo;
-    const createRequestFormResult = await createRequestForm(payload);
-    const result_files = await filesManage(
-        createRequestFormResult,
-        payload.detail.files
-    );
-    const createFormStep1Result = await createFormStep1Detail(
-        payload,
-        createRequestFormResult._id
-    );
-    const createFormStep2Result = await createFormStep2TestPurpose(
-        payload,
-        createRequestFormResult._id
-    );
-    const createFormStep3Result = await createFormStep3TestingType(
-        payload,
-        createRequestFormResult._id
-    );
-    const createFormStep4Result = await createFormStep4TestingCondition(
-        payload,
-        createRequestFormResult._id
-    );
-    const createFormStep5Result = await createFormStep5UserApprove(
-        payload,
-        createRequestFormResult._id
-    );
-    await createFormStep5UserRequest(
-        payload,
-        createRequestFormResult._id
-    );
+    const userApprove = await userModel.findById(payload.userApprove.userId);
+    const createRequestFormResult = await createRequestForm(payload, userApprove);
+    await filesManage(createRequestFormResult, payload.detail.files);
+    await createFormStep1Detail(payload, createRequestFormResult._id);
+    await createFormStep2TestPurpose(payload, createRequestFormResult._id);
+    await createFormStep3TestingType(payload, createRequestFormResult._id);
+    await createFormStep4TestingCondition(payload, createRequestFormResult._id);
+    await createFormStep5UserApprove(payload, createRequestFormResult._id);
+    await createFormStep5UserRequest(payload, createRequestFormResult._id);
     // console.log(createFormStep1Result);
     // console.log(createFormStep2Result);
     // res.statusCode = 200;
@@ -471,13 +455,14 @@ async function checkDuplicateRequestNo(controlNo) {
         .limit(1);
 }
 
-async function createRequestForm(body) {
+async function createRequestForm(body, userApprove) {
     const data = {
         userId: body.request._id,
         date: new Date(),
         controlNo: body.detail.controlNo,
         corporate: body.detail.corporate,
         status: "request",
+        nextApprove: userApprove._doc,
     };
     return await request_form.create(data);
 }
@@ -516,20 +501,20 @@ async function createFormStep4TestingCondition(body, requestId) {
     return await formStep4TestingCondition.create(data);
 }
 async function createFormStep5UserApprove(body, requestId) {
-    const user = await userModel.findById(body.userApprove.userId)
+    const user = await userModel.findById(body.userApprove.userId);
     const data = {
         requestId: requestId,
         authorize: body.userApprove.authorize,
         userId: body.userApprove.userId,
-        userName: user.name || '',
+        userName: user.name || "",
         statusApprove: false,
         dateApprove: null,
-        level: 2
+        level: 2,
     };
     return await formStep5UserApprove.create(data);
 }
 async function createFormStep5UserRequest(body, requestId) {
-    const user = await userModel.findById(body.request._id)
+    const user = await userModel.findById(body.request._id);
 
     const data = {
         requestId: requestId,
@@ -538,8 +523,7 @@ async function createFormStep5UserRequest(body, requestId) {
         userName: user.name,
         statusApprove: true,
         dateApprove: body.userApprove.dateApprove,
-        level: 1
-
+        level: 1,
     };
     return await formStep5UserApprove.create(data);
 }
@@ -619,6 +603,51 @@ router.delete("/delete/:id", async(req, res, next) => {
             res.sendStatus(200);
         })
         .catch((err) => res.json(err));
+});
+
+router.delete("/deleteAll/", async(req, res, next) => {
+    const request = await request_form.aggregate([
+        { $match: {} },
+        {
+            $project: {
+                id: {
+                    $toString: "$_id",
+                },
+            },
+        },
+    ]);
+    let arr = [];
+    if (request.length > 0) {
+        for (let index = 0; index < request.length; index++) {
+            arr.push(await request_form.deleteMany({ _id: request[index].id }));
+            arr.push(
+                await formStep1Detail.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep2TestPurpose.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep3TestingType.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep4TestingCondition.deleteMany({
+                    requestId: request[index].id,
+                })
+            );
+            arr.push(
+                await formStep5UserApprove.deleteMany({ requestId: request[index].id })
+            );
+            if (index + 1 == request.length) {
+                Promise.all(arr)
+                    .then((result) => {
+                        res.sendStatus(200);
+                    })
+                    .catch((err) => res.json(err));
+            }
+        }
+    } else {
+        res.sendStatus(400);
+    }
 });
 
 router.post("/count", (req, res, next) => {

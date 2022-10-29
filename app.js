@@ -24,6 +24,7 @@ let interval_master = require("./src/routes/interval_master");
 let request_form = require("./src/routes/request_form");
 let files = require("./src/routes/files");
 let log_flow = require("./src/routes/log_flow");
+let userApprove = require("./src/routes/userApprove");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
@@ -45,5 +46,6 @@ app.use("/interval_master", interval_master);
 app.use("/request_form", request_form);
 app.use("/files", files);
 app.use("/log_flow", log_flow);
+app.use("/userApprove", userApprove);
 
 module.exports = app;
