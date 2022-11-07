@@ -25,6 +25,10 @@ let request_form = require("./src/routes/request_form");
 let files = require("./src/routes/files");
 let log_flow = require("./src/routes/log_flow");
 let userApprove = require("./src/routes/userApprove");
+let operate_group = require("./src/routes/operate_group");
+let operate_items = require("./src/routes/operate_items");
+let function_chamber = require("./src/routes/function_chamber");
+let chamber_list = require("./src/routes/chamber_list");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
@@ -47,5 +51,9 @@ app.use("/request_form", request_form);
 app.use("/files", files);
 app.use("/log_flow", log_flow);
 app.use("/userApprove", userApprove);
+app.use("/operate_group", operate_group);
+app.use("/operate_items", operate_items);
+app.use("/function_chamber", function_chamber);
+app.use("/chamber_list", chamber_list);
 
 module.exports = app;
