@@ -12,6 +12,7 @@ const chamber_list = new Schema({
         default: 0,
         required: true,
     },
+    running: {}
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("chamber_list", chamber_list);

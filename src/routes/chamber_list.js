@@ -13,11 +13,29 @@ router.get("", (req, res, next) => {
     });
 });
 
+router.get("/chamber/:value", (req, res, next) => {
+    const { value } = req.params;
+    chamber_list
+        .aggregate([{
+            $match: {
+                "function.value": parseInt(value),
+            },
+        }, ])
+        .exec((err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+});
+
 router.get("/lastRecord", (req, res, next) => {
-    chamber_list.aggregate([{
+    chamber_list
+        .aggregate([{
             $match: {},
         }, ])
-        .sort({ updatedAt: -1 })
+        .sort({ createdAt: -1 })
         .limit(1)
         .exec((err, result) => {
             if (err) res.json(err);
@@ -35,16 +53,17 @@ router.post("/insert", (req, res, next) => {
     });
 });
 
-
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
-    chamber_list.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
-    });
+    chamber_list
+        .updateMany({ _id: id }, { $set: req.body })
+        .exec((err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
 });
 
 router.delete("/delete/:id", (req, res, next) => {
@@ -57,6 +76,5 @@ router.delete("/delete/:id", (req, res, next) => {
         }
     });
 });
-
 
 module.exports = router;
