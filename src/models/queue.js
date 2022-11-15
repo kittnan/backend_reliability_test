@@ -8,17 +8,18 @@ const data = new Schema({
         at: Number,
         startDate: Date,
         endDate: Date,
-        min: Number,
+        hr: Number,
     }, ],
     reportTime: [{
         at: Number,
         startDate: Date,
         endDate: Date,
-        min: Number,
+        hr: Number,
     }, ],
     work: {
         requestId: String,
         qty: Number,
+        controlNo: String,
     },
     condition: {
         code: String,
@@ -28,6 +29,27 @@ const data = new Schema({
             checker: {},
         },
     },
+    operate: {
+        attachment: {
+            code: String,
+            name: String,
+            qty: Number
+        },
+        checker: {
+            code: String,
+            name: String,
+            qty: Number
+        },
+        power: {
+            code: String,
+            name: String,
+            qty: Number
+        },
+
+    },
+    chamber: {
+
+    }
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("queue", data);

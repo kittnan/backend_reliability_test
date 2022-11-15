@@ -29,6 +29,7 @@ let operate_group = require("./src/routes/operate_group");
 let operate_items = require("./src/routes/operate_items");
 let function_chamber = require("./src/routes/function_chamber");
 let chamber_list = require("./src/routes/chamber_list");
+let queue = require("./src/routes/queue");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
@@ -55,5 +56,6 @@ app.use("/operate_group", operate_group);
 app.use("/operate_items", operate_items);
 app.use("/function_chamber", function_chamber);
 app.use("/chamber_list", chamber_list);
+app.use("/queue", queue);
 
 module.exports = app;

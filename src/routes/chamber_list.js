@@ -2,6 +2,7 @@ let express = require("express");
 let router = express.Router();
 
 const chamber_list = require("../models/chamber_list");
+const queue = require("../models/queue");
 
 router.get("", (req, res, next) => {
     chamber_list.find({}).exec((err, result) => {
@@ -51,6 +52,17 @@ router.post("/insert", (req, res, next) => {
             res.json(result);
         }
     });
+});
+
+router.post("/insertQueue", (req, res, next) => {
+    console.log(req.body)
+        // chamber_list.insertMany(req.body, (err, result) => {
+        //     if (err) {
+        //         res.json(err);
+        //     } else {
+        //         res.json(result);
+        //     }
+        // });
 });
 
 router.put("/update/:id", (req, res, next) => {
