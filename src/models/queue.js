@@ -22,7 +22,7 @@ const data = new Schema({
         controlNo: String,
     },
     condition: {
-        code: String,
+        value: String,
         tool: {
             power: {},
             attachment: {},
@@ -48,7 +48,8 @@ const data = new Schema({
 
     },
     chamber: {
-
+        code: String,
+        name: String
     }
 }, { timestamps: true, versionKey: false });
 

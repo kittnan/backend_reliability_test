@@ -19,7 +19,7 @@ const formStep1Detail = new Schema({
     requestStatus: String,
     sampleDescription: String,
     sampleSentToQE_withinDate: Date,
-    type: String
+    size: String
 
 }, { timestamps: true, versionKey: false, strict: true });
 
