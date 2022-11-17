@@ -2,38 +2,62 @@ const queue = require("../models/queue");
 const chamber_list = require("../models/chamber_list");
 const operate_items = require("../models/operate-items");
 module.exports = {
-    test: function test() {
-        return queue.find({})
-    },
-    checkStateChamber: function checkStateChamber(code, status) {
-        return chamber_list
-            .aggregate([{
-                $match: {
-                    code: code,
-                    status: status,
-                },
-            }, ])
-            .limit(1);
-    },
-    checkDate: function checkDate(startDate, endDate, chamberCode, value) {
-        return queue.aggregate([{
-                $match: {
-                    endDate: {
-                        $gte: new Date(startDate),
+
+    checkStateChamber: async function checkStateChamber(code, status) {
+        return new Promise(async(resolve, reject) => {
+            const foo = await chamber_list
+                .aggregate([{
+                    $match: {
+                        code: code,
+                        status: status,
                     },
-                    "chamber.code": chamberCode,
-                    "condition.value": value,
-                },
-            },
-            {
-                $group: {
-                    _id: "$chamber.code",
-                    total: {
-                        $sum: "$work.qty",
+                }, ])
+                .limit(1);
+            if (foo && foo.length > 0) {
+                resolve(foo);
+            } else {
+                reject({
+                    status: false,
+                    text: `chamber ${code} not ready`,
+                });
+            }
+        });
+    },
+    qtyValid: function qtyValid(startDate, chamberCode, value, qty, cap) {
+        return new Promise(async(resolve, reject) => {
+            const foo = await queue.aggregate([{
+                    $match: {
+                        endDate: {
+                            $gte: new Date(startDate),
+                        },
+                        "chamber.code": chamberCode,
+                        "condition.value": value.toString(),
                     },
                 },
-            },
-        ]);
+                {
+                    $group: {
+                        _id: "$chamber.code",
+                        total: {
+                            $sum: "$work.qty",
+                        },
+                    },
+                },
+            ]);
+
+            if (foo && foo.length > 0) {
+                const use = foo[0].total ? Number(qty) + foo[0].total : Number(qty);
+                if (use <= cap) {
+                    resolve(true);
+                } else {
+                    reject({
+                        status: false,
+                        text: `qty full`,
+                    });
+                }
+            } else {
+                resolve(true);
+            }
+        });
     },
     onRunningRecord: function onRunningRecord(startDate, chamberCode, value) {
         return queue.aggregate([{
@@ -42,7 +66,7 @@ module.exports = {
                     $gte: new Date(startDate),
                 },
                 "chamber.code": chamberCode,
-                "condition.value": value,
+                "condition.value": value.toString(),
             },
         }, ]);
     },
@@ -59,14 +83,27 @@ module.exports = {
         }, 0);
     },
 
+    checkOperateStatus: function checkOperateStatus(status, type) {
+        return new Promise((resolve, reject) => {
+            if (status) {
+                resolve(true);
+            } else {
+                reject({
+                    status: false,
+                    text: `${type} not ready`,
+                });
+            }
+        });
+    },
+
     createQueue: function createQueue(items) {
         return queue.create(items);
     },
+
     checkLenDataNotZero: function checkLenDataNotZero(data) {
         return new Promise((resolve, reject) => {
-            if (data && data.length != 0) resolve(true)
-            reject(false)
-        })
-    }
-
-}
+            if (data && data.length != 0) resolve(true);
+            reject(false);
+        });
+    },
+};
