@@ -41,7 +41,8 @@ router.get("/ready/:value/:startDate/:qty", async(req, res, next) => {
         }, ]);
         const codes = await mapChamberCode(chamber);
         const r_queue = await findChamberQueue(codes, startDate);
-        const r_mapChamber = await mapChamber(chamber, r_queue, qty);
+        const remain = await findChamberQueueNoGroup(codes, startDate);
+        const r_mapChamber = await mapChamber(chamber, r_queue, remain, qty);
         const freeChamber = await filterChamber(r_mapChamber);
         res.json(freeChamber);
     } catch (error) {
@@ -87,7 +88,25 @@ function findChamberQueue(codes, startDate) {
     });
 }
 
-function mapChamber(chamber, r_queue, qty) {
+function findChamberQueueNoGroup(codes, startDate) {
+    return new Promise((resolve) => {
+        const r_queue = queue.aggregate([{
+                $match: {
+                    endDate: {
+                        $gte: new Date(startDate),
+                    },
+                    "chamber.code": {
+                        $in: codes,
+                    },
+                },
+            },
+
+        ]).sort({ endDate: 1 })
+        resolve(r_queue);
+    });
+}
+
+function mapChamber(chamber, r_queue, remain, qty) {
     return new Promise((resolve) => {
         resolve(
             chamber.map((c) => {
@@ -112,6 +131,7 @@ function mapChamber(chamber, r_queue, qty) {
 
                 if (foundItem) {
                     temp['run'] = foundItem
+                    temp['remain'] = remain;
                 } else {
                     temp['run'] = 0
                 }

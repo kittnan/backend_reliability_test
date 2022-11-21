@@ -23,11 +23,7 @@ const data = new Schema({
     },
     condition: {
         value: String,
-        tool: {
-            power: {},
-            attachment: {},
-            checker: {},
-        },
+        name: String,
     },
     operate: {
         attachment: {
@@ -45,12 +41,14 @@ const data = new Schema({
             name: String,
             qty: Number
         },
+        status: Boolean
 
     },
     chamber: {
         code: String,
         name: String
-    }
+    },
+    status: String
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("queue", data);

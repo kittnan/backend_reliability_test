@@ -17,6 +17,23 @@ router.get("", (req, res, next) => {
     });
 });
 
+router.get("/formId/:requestId", (req, res, next) => {
+    const { requestId } = req.params;
+    queue
+        .aggregate([{
+            $match: {
+                "work.requestId": requestId,
+            },
+        }, ])
+        .exec((err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+});
+
 async function checkStateChamber(code, status) {
     return await chamber_list
         .aggregate([{
@@ -39,6 +56,7 @@ router.post("/insert", async(req, res, next) => {
                 functionValue: data[i].condition.value,
                 chamberCode: data[i].chamber.code,
                 chamberStatus: true,
+                status: data[i].status,
             };
             const r_chamber = await fn.checkStateChamber(
                 con.chamberCode,
@@ -81,17 +99,23 @@ router.post("/insert", async(req, res, next) => {
             const createObj = await fn.createQueue(data[i]);
 
             if (i + 1 === data.length) {
-                res.status(200).json({
-                    status: true,
-                    text: "CREATE SUCCESS",
-                });
+                if (data[0].status == "draft") {
+                    res.status(200).json({
+                        status: true,
+                        text: createObj,
+                    });
+                } else {
+                    res.status(200).json({
+                        status: true,
+                        text: "CREATE SUCCESS",
+                    });
+                }
             }
         }
     } catch (error) {
         await queue.deleteMany({
             "work.requestId": req.body[0].work.requestId,
         });
-        error.text = error.text.toUpperCase()
         res.status(200).json(error);
     }
 });
@@ -105,6 +129,34 @@ router.put("/update/:id", (req, res, next) => {
             res.json(result);
         }
     });
+});
+router.put("/updateMany/", async(req, res, next) => {
+    try {
+        const data = req.body;
+        for (let index = 0; index < data.length; index++) {
+            await queue.updateOne({ _id: data[index]._id }, {
+                $set: {
+                    ...data[index],
+                    status: 'ready'
+                }
+            });
+            if (index + 1 === data.length) {
+                res.json({
+                    status: true
+                })
+            }
+        }
+    } catch (error) {
+        res.status(200).json(error)
+    }
+
+    // queue.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
+    //     if (err) {
+    //         res.json(err);
+    //     } else {
+    //         res.json(result);
+    //     }
+    // });
 });
 
 router.delete("/delete/:id", (req, res, next) => {

@@ -1,5 +1,8 @@
 let express = require("express");
 let router = express.Router();
+let fn = require("./queue_fn");
+const queue = require("../models/queue");
+const operate_items = require("../models/operate-items")
 
 const operate_group = require("../models/operate-group");
 
@@ -187,6 +190,43 @@ router.get("", (req, res, next) => {
         }
     });
 });
+
+router.get("/ready/:startDate/:operate", async(req, res, next) => {
+    try {
+        const { startDate, operate } = req.params;
+        const operateGroup = JSON.parse(operate);
+        const runRecord = await onRunning(startDate)
+        const checker = fn.sumCountOperates(runRecord, 'checker')
+        const power = fn.sumCountOperates(runRecord, 'power')
+        const attachment = fn.sumCountOperates(runRecord, 'attachment')
+        const newChecker = {
+            qty: Number(operateGroup.checker.qty) + checker,
+            code: operateGroup.checker.code
+        }
+        const newPower = {
+            qty: Number(operateGroup.power.qty) + power,
+            code: operateGroup.power.code
+        }
+        const newAttachment = {
+            qty: Number(operateGroup.attachment.qty) + attachment,
+            code: operateGroup.attachment.code
+        }
+
+        res.json(newChecker);
+    } catch (error) {}
+});
+
+function onRunning(startDate) {
+    return queue.aggregate([{
+        $match: {
+            endDate: {
+                $gte: new Date(startDate),
+            },
+        },
+    }, ]);
+}
+
+
 
 router.get("/lastCode", (req, res, next) => {
     operate_group
