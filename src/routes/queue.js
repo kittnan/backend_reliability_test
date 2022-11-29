@@ -45,6 +45,15 @@ async function checkStateChamber(code, status) {
         .limit(1);
 }
 router.post("/insert", async(req, res, next) => {
+    queue.insertMany(req.body, (err, result) => {
+        if (err) {
+            res.json(err);
+        } else {
+            res.json(result);
+        }
+    });
+});
+router.post("/check", async(req, res, next) => {
     let result = [];
     let data = req.body;
     try {
@@ -71,48 +80,69 @@ router.post("/insert", async(req, res, next) => {
                 r_chamber[0].capacity
             );
 
-            const running = await fn.onRunningRecord(
-                con.startDate,
-                con.chamberCode,
-                data[i].condition.value
-            );
-
-            const checker = await fn.findOperateItem(data[i].operate.checker.code);
-            const checkerCount = fn.sumCountOperates(running, "checker");
-            const checkerState =
-                Number(checkerCount) <= Number(checker[0].qty) ? true : false;
-            await fn.checkOperateStatus(checkerState, "checker");
-
-            const power = await fn.findOperateItem(data[i].operate.power.code);
-            const powerCount = fn.sumCountOperates(running, "power");
-            const powerState =
-                Number(powerCount) <= Number(power[0].qty) ? true : false;
-            await fn.checkOperateStatus(powerState, "power");
-
-            const attachment = await fn.findOperateItem(
-                data[i].operate.attachment.code
-            );
-            const attachmentCount = fn.sumCountOperates(running, "attachment");
-            const attachmentState =
-                Number(attachmentCount) <= Number(attachment[0].qty) ? true : false;
-            await fn.checkOperateStatus(attachmentState, "attachment");
-            const createObj = await fn.createQueue(data[i]);
-
-            if (i + 1 === data.length) {
-                if (data[0].status == "draft") {
-                    res.status(200).json({
-                        status: true,
-                        text: createObj,
-                    });
+            const running = await fn.onRunningRecord(con.startDate, con.chamberCode);
+            let run;
+            let createStatus = false
+            if (running.length > 0) {
+                if (running.find((r) => Number(r.condition.value) == Number(data[i].condition.value))) {
+                    run = running;
+                    createStatus = true
                 } else {
-                    res.status(200).json({
-                        status: true,
-                        text: "CREATE SUCCESS",
-                    });
+                    res.status(200).json('chamber function not match');
+                }
+            } else {
+                run = [];
+                createStatus = true
+            }
+
+            if (createStatus) {
+                if (data[i].operate.checker && data[i].operate.checker.code) {
+                    const checker = await fn.findOperateItem(data[i].operate.checker.code);
+                    const checkerCount = fn.sumCountOperates(run, "checker");
+                    const checkerState =
+                        Number(checkerCount) <= Number(checker[0].qty) ? true : false;
+                    await fn.checkOperateStatus(checkerState, "checker");
+                }
+
+                if (data[i].operate.power && data[i].operate.power.code) {
+                    const power = await fn.findOperateItem(data[i].operate.power.code);
+                    const powerCount = fn.sumCountOperates(run, "power");
+                    const powerState =
+                        Number(powerCount) <= Number(power[0].qty) ? true : false;
+                    await fn.checkOperateStatus(powerState, "power");
+                }
+
+                if (data[i].operate.attachment && data[i].operate.attachment.code) {
+                    const attachment = await fn.findOperateItem(
+                        data[i].operate.attachment.code
+                    );
+                    const attachmentCount = fn.sumCountOperates(run, "attachment");
+                    const attachmentState =
+                        Number(attachmentCount) <= Number(attachment[0].qty) ? true : false;
+                    await fn.checkOperateStatus(attachmentState, "attachment");
+                }
+
+                // const createObj = await fn.createQueue(data[i]);
+
+                if (i + 1 === data.length) {
+                    if (data[0].status == "draft") {
+                        res.status(200).json({
+                            status: true,
+                            text: data,
+                        });
+                    } else {
+                        res.status(200).json({
+                            status: true,
+                            text: "CREATE SUCCESS",
+                        });
+                    }
                 }
             }
+
+
         }
     } catch (error) {
+        console.log(error);
         await queue.deleteMany({
             "work.requestId": req.body[0].work.requestId,
         });
@@ -137,17 +167,17 @@ router.put("/updateMany/", async(req, res, next) => {
             await queue.updateOne({ _id: data[index]._id }, {
                 $set: {
                     ...data[index],
-                    status: 'ready'
-                }
+                    status: "ready",
+                },
             });
             if (index + 1 === data.length) {
                 res.json({
-                    status: true
-                })
+                    status: true,
+                });
             }
         }
     } catch (error) {
-        res.status(200).json(error)
+        res.status(200).json(error);
     }
 
     // queue.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {

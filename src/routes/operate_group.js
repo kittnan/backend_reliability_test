@@ -2,7 +2,7 @@ let express = require("express");
 let router = express.Router();
 let fn = require("./queue_fn");
 const queue = require("../models/queue");
-const operate_items = require("../models/operate-items")
+const operate_items = require("../models/operate-items");
 
 const operate_group = require("../models/operate-group");
 
@@ -192,29 +192,124 @@ router.get("", (req, res, next) => {
 });
 
 router.get("/ready/:startDate/:operate", async(req, res, next) => {
-    try {
-        const { startDate, operate } = req.params;
-        const operateGroup = JSON.parse(operate);
-        const runRecord = await onRunning(startDate)
-        const checker = fn.sumCountOperates(runRecord, 'checker')
-        const power = fn.sumCountOperates(runRecord, 'power')
-        const attachment = fn.sumCountOperates(runRecord, 'attachment')
-        const newChecker = {
-            qty: Number(operateGroup.checker.qty) + checker,
-            code: operateGroup.checker.code
-        }
-        const newPower = {
-            qty: Number(operateGroup.power.qty) + power,
-            code: operateGroup.power.code
-        }
-        const newAttachment = {
-            qty: Number(operateGroup.attachment.qty) + attachment,
-            code: operateGroup.attachment.code
-        }
+    const { startDate, operate } = req.params;
+    const operateJson = JSON.parse(operate);
+    const run_checker = await checkerRunning(startDate, operateJson.checker.code);
+    const run_power = await powerRunning(startDate, operateJson.power.code);
+    const run_attachment = await attachmentRunning(
+        startDate,
+        operateJson.attachment.code
+    );
 
-        res.json(newChecker);
-    } catch (error) {}
+    const stock_checker = await operate_items.aggregate([{
+        $match: {
+            code: operateJson.checker.code,
+        },
+    }, ]);
+    const r_checker = checkStock(
+        run_checker,
+        operateJson,
+        "checker",
+        stock_checker[0].stock
+    );
+
+    const stock_power = await operate_items.aggregate([{
+        $match: {
+            code: operateJson.power.code,
+        },
+    }, ]);
+    const r_power = checkStock(run_power, operateJson, "power", stock_power[0].stock);
+
+    const stock_attachment = await operate_items.aggregate([{
+        $match: {
+            code: operateJson.attachment.code,
+        },
+    }, ]);
+    const r_attachment = checkStock(
+        run_attachment,
+        operateJson,
+        "attachment",
+        stock_attachment[0].stock
+    );
+    let text = ""
+    r_checker.status ? text += "" : text += r_checker.statusText
+    r_power.status ? text += "" : text += r_power.statusText
+    r_attachment.status ? text += "" : text += r_attachment.statusText
+
+    if (r_checker.status && r_power.status && r_attachment.status) {
+        res.json({
+            checker: r_checker,
+            power: r_power,
+            attachment: r_attachment,
+            status: true,
+            text: `
+            <p>checker in stock is ${r_checker.statusText}/${stock_checker[0].stock}</p>
+            <p>power in stock is ${r_power.statusText}/${stock_power[0].stock}</p>
+            <p>attachment in stock is ${r_attachment.statusText}/${stock_attachment[0].stock}</p>
+            `
+        });
+    } else {
+        res.json({
+            checker: r_checker,
+            power: r_power,
+            attachment: r_attachment,
+            status: false,
+            text: `
+            <p>checker in stock is ${r_checker.statusText}/${stock_checker[0].stock}</p>
+            <p>power in stock is ${r_power.statusText}/${stock_power[0].stock}</p>
+            <p>attachment in stock is ${r_attachment.statusText}/${stock_attachment[0].stock}</p>
+            `
+        });
+    }
 });
+
+function checkStock(run, operate, key, stock) {
+    if (run.length > 0) {
+        if (Number(run[0].total) + Number(operate[key].qty) <= Number(stock)) {
+            return {
+                ...operate[key],
+                status: true,
+                statusText: Number(run[0].total) + Number(operate[key].qty)
+            };
+        } else {
+            return {
+                ...operate[key],
+                status: false,
+                statusText: Number(run[0].total) + Number(operate[key].qty),
+                statusText: Number(run[0].total) + Number(operate[key].qty)
+            };
+        }
+    } else {
+        if (Number(operate[key].qty) <= Number(stock)) {
+            return {
+                ...operate[key],
+                status: true,
+                statusText: Number(operate[key].qty)
+            };
+        } else {
+            return {
+                ...operate[key],
+                status: false,
+                statusText: Number(operate[key].qty)
+            };
+        }
+    }
+
+    // if (
+    //     run.length > 0 &&
+    //     Number(run[0].total) + Number(operate[key].qty) <= Number(stock)
+    // ) {
+    //     return {
+    //         ...operate[key],
+    //         status: true,
+    //     };
+    // } else {
+    //     return {
+    //         ...operate[key],
+    //         status: false,
+    //     };
+    // }
+}
 
 function onRunning(startDate) {
     return queue.aggregate([{
@@ -226,7 +321,73 @@ function onRunning(startDate) {
     }, ]);
 }
 
+function findStock(code) {
+    return operate_items.aggregate([{
+        $match: {
+            code: code,
+        },
+    }, ]);
+}
 
+function checkerRunning(startDate, code) {
+    return queue.aggregate([{
+            $match: {
+                endDate: {
+                    $gte: new Date(startDate),
+                },
+                "operate.checker.code": code,
+            },
+        },
+        {
+            $group: {
+                _id: "$operate.checker.code",
+                total: {
+                    $sum: "$operate.checker.qty",
+                },
+            },
+        },
+    ]);
+}
+
+function powerRunning(startDate, code) {
+    return queue.aggregate([{
+            $match: {
+                endDate: {
+                    $gte: new Date(startDate),
+                },
+                "operate.power.code": code,
+            },
+        },
+        {
+            $group: {
+                _id: "$operate.power.code",
+                total: {
+                    $sum: "$operate.power.qty",
+                },
+            },
+        },
+    ]);
+}
+
+function attachmentRunning(startDate, code) {
+    return queue.aggregate([{
+            $match: {
+                endDate: {
+                    $gte: new Date(startDate),
+                },
+                "operate.attachment.code": code,
+            },
+        },
+        {
+            $group: {
+                _id: "$operate.attachment.code",
+                total: {
+                    $sum: "$operate.attachment.qty",
+                },
+            },
+        },
+    ]);
+}
 
 router.get("/lastCode", (req, res, next) => {
     operate_group

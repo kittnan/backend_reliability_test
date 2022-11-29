@@ -44,7 +44,8 @@ router.get("/ready/:value/:startDate/:qty", async(req, res, next) => {
         const remain = await findChamberQueueNoGroup(codes, startDate);
         const r_mapChamber = await mapChamber(chamber, r_queue, remain, qty);
         const freeChamber = await filterChamber(r_mapChamber);
-        res.json(freeChamber);
+        const r_mapCondition = await mapCondition(freeChamber, value);
+        res.json(r_mapCondition);
     } catch (error) {
         res.json({
             status: false,
@@ -90,7 +91,8 @@ function findChamberQueue(codes, startDate) {
 
 function findChamberQueueNoGroup(codes, startDate) {
     return new Promise((resolve) => {
-        const r_queue = queue.aggregate([{
+        const r_queue = queue
+            .aggregate([{
                 $match: {
                     endDate: {
                         $gte: new Date(startDate),
@@ -99,9 +101,8 @@ function findChamberQueueNoGroup(codes, startDate) {
                         $in: codes,
                     },
                 },
-            },
-
-        ]).sort({ endDate: 1 })
+            }, ])
+            .sort({ endDate: 1 });
         resolve(r_queue);
     });
 }
@@ -111,12 +112,14 @@ function mapChamber(chamber, r_queue, remain, qty) {
         resolve(
             chamber.map((c) => {
                 const foundItem = r_queue.find((q) => q._id == c.code) ?
-                    r_queue.find((q) => q._id == c.code).total :
-                    0;
-                let freeCap = Number(c.capacity) - Number(foundItem);
+                    r_queue.find((q) => q._id == c.code) :
+                    {
+                        total: 0,
+                    };
+                let freeCap = Number(c.capacity) - Number(foundItem.total);
                 let temp = {...c };
 
-                if (freeCap >= qty) {
+                if (freeCap >= Number(qty)) {
                     temp = {
                         ...temp,
                         free: freeCap,
@@ -125,18 +128,21 @@ function mapChamber(chamber, r_queue, remain, qty) {
                 } else {
                     temp = {
                         ...temp,
+                        free: 0,
                         status: false,
                     };
                 }
 
-                if (foundItem) {
-                    temp['run'] = foundItem
-                    temp['remain'] = remain;
+                if (foundItem.total > 0) {
+                    temp["run"] = foundItem.total;
+                    temp["remain"] = remain.filter(
+                        (r) => r.chamber.code == foundItem._id
+                    );
                 } else {
-                    temp['run'] = 0
+                    temp["run"] = 0;
+                    temp["remain"] = [];
                 }
-                return temp
-
+                return temp;
             })
         );
     });
@@ -145,6 +151,35 @@ function mapChamber(chamber, r_queue, remain, qty) {
 function filterChamber(chamber) {
     return new Promise((resolve) => {
         resolve(chamber.filter((c) => c.status));
+    });
+}
+
+function mapCondition(chamber, value) {
+    return new Promise((resolve) => {
+        resolve(
+            chamber.map((c) => {
+                if (
+                    c.remain &&
+                    c.remain.length > 0 &&
+                    c.remain.find((r) => r.condition.value == value)
+                ) {
+                    return {
+                        ...c,
+                        status: true,
+                    };
+                } else if (c.remain && c.remain.length == 0) {
+                    return {
+                        ...c,
+                        status: true,
+                    };
+                } else {
+                    return {
+                        ...c,
+                        status: false,
+                    };
+                }
+            })
+        );
     });
 }
 

@@ -59,14 +59,13 @@ module.exports = {
             }
         });
     },
-    onRunningRecord: function onRunningRecord(startDate, chamberCode, value) {
+    onRunningRecord: function onRunningRecord(startDate, chamberCode) {
         return queue.aggregate([{
             $match: {
                 endDate: {
                     $gte: new Date(startDate),
                 },
                 "chamber.code": chamberCode,
-                "condition.value": value.toString(),
             },
         }, ]);
     },
