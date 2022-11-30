@@ -7,6 +7,7 @@ const request_form = new Schema({
     controlNo: String,
     corporate: String,
     status: String,
+    table: {},
     nextApprove: {}
 }, { timestamps: true, versionKey: false });
 
