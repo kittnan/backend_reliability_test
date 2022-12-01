@@ -8,6 +8,7 @@ const formStep3TestingType = require("../models/form-step3-testingType");
 const formStep4TestingCondition = require("../models/form-step4-testingCondition");
 const formStep5UserApprove = require("../models/form-step5-userApprove");
 const userModel = require("../models/user");
+const queue = require("../models/queue");
 
 const ObjectId = require("mongodb").ObjectID;
 
@@ -20,6 +21,8 @@ router.get("", (req, res, next) => {
         }
     });
 });
+
+// TODO get data by id and lookup all
 router.get("/id/:id", (req, res, next) => {
     const { id } = req.params;
 
@@ -34,6 +37,7 @@ router.get("/id/:id", (req, res, next) => {
                     $toString: "$_id",
                 },
                 status: "$status",
+                table: "$table",
             },
         },
         {
@@ -92,6 +96,8 @@ router.get("/id/:id", (req, res, next) => {
                 },
                 step5: "$step5",
                 status: "$status",
+                table: "$table",
+
             },
         },
     ];
@@ -102,6 +108,8 @@ router.get("/id/:id", (req, res, next) => {
     });
 });
 
+
+// TODO get to table
 router.get("/table/:userId/:status", async(req, res, next) => {
     const { userId, status } = req.params;
     const newStatus = JSON.parse(status);
@@ -180,6 +188,8 @@ router.get("/table/:userId/:status", async(req, res, next) => {
         });
 });
 
+
+// TODO get to table manage
 router.get(
     "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
     async(req, res, next) => {
@@ -196,81 +206,9 @@ router.get(
 
         res.json(approve);
 
-        // let condition = [{
-        //         $match: {
-        //             userId: userId,
-        //             status: {
-        //                 $in: newStatus,
-        //             },
-        //         },
-        //     },
-        //     {
-        //         $project: {
-        //             _id: {
-        //                 $toString: "$_id",
-        //             },
-        //             status: "$status",
-        //             createdAt: "$createdAt",
-        //             updatedAt: "$updatedAt",
-        //             corporate: "$corporate",
-        //         },
-        //     },
-        //     {
-        //         $lookup: {
-        //             from: "formstep1details",
-        //             localField: "_id",
-        //             foreignField: "requestId",
-        //             as: "step1",
-        //         },
-        //     },
-        //     {
-        //         $project: {
-        //             _id: "$_id",
-        //             controlNo: {
-        //                 $first: "$step1.controlNo",
-        //             },
-        //             lotNo: {
-        //                 $first: "$step1.lotNo",
-        //             },
-        //             modelNo: {
-        //                 $first: "$step1.modelNo",
-        //             },
-        //             status: "$status",
-        //             createdAt: "$createdAt",
-        //             updatedAt: "$updatedAt",
-        //             corporate: "$corporate",
-        //         },
-        //     },
-        //     {
-        //         $lookup: {
-        //             from: "formstep5userapproves",
-        //             localField: "_id",
-        //             foreignField: "requestId",
-        //             as: "step5",
-        //         },
-        //     },
-        // ];
-
-        // if (count == 1) {
-        //     condition.push({
-        //         $count: "count",
-        //     });
-        // }
-        // let newLimit = limit;
-        // if (limit == 0) {
-        //     newLimit = BigInt(Number.MAX_SAFE_INTEGER);
-        // }
-        // request_form
-        //     .aggregate(condition)
-        //     .sort({ createdAt: parseInt(sort) })
-        //     .skip(parseInt(skip))
-        //     .limit(Number(newLimit))
-        //     .exec((err, result) => {
-        //         if (err) res.json(err);
-        //         res.json(result);
-        // });
     }
 );
+
 
 router.get("/condition/:userId/:status", (req, res, next) => {
     let { userId, status } = req.params;
@@ -369,17 +307,7 @@ router.post("/getByCondition/", (req, res, next) => {
             match["$match"] = {};
         }
     }
-    // if (payload && payload.status && payload.status.length > 0) {
-    //     const temp = {
-    //         status: {
-    //             '$nin': payload.status,
-    //         },
-    //     };
-    //     match["$match"] = {
-    //         ...temp,
-    //         ...match["$match"]
-    //     };
-    // }
+
     if (payload && payload._id) {
         const temp = {
             userId: payload._id,
@@ -437,12 +365,110 @@ router.post("/insert", async(req, res, next) => {
     await createFormStep2TestPurpose(payload, createRequestFormResult._id);
     await createFormStep3TestingType(payload, createRequestFormResult._id);
     await createFormStep4TestingCondition(payload, createRequestFormResult._id);
-    await createFormStep5UserApprove(payload, createRequestFormResult._id);
     await createFormStep5UserRequest(payload, createRequestFormResult._id);
+    await createFormStep5UserApprove(payload, createRequestFormResult._id);
     // console.log(createFormStep1Result);
     // console.log(createFormStep2Result);
     // res.statusCode = 200;
     res.json(createRequestFormResult);
+});
+
+
+router.put("/update/:id", (req, res, next) => {
+    const { id } = req.params;
+    request_form
+        .updateMany({ _id: id }, { $set: req.body })
+        .exec((err, result) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+});
+
+router.delete("/delete/:id", async(req, res, next) => {
+    const { id } = req.params;
+    let arr = [];
+    arr.push(await request_form.deleteMany({ _id: id }));
+    arr.push(await formStep1Detail.deleteMany({ requestId: id }));
+    arr.push(await formStep2TestPurpose.deleteMany({ requestId: id }));
+    arr.push(await formStep3TestingType.deleteMany({ requestId: id }));
+    arr.push(await formStep4TestingCondition.deleteMany({ requestId: id }));
+    arr.push(await formStep5UserApprove.deleteMany({ requestId: id }));
+    Promise.all(arr)
+        .then((result) => {
+            res.sendStatus(200);
+        })
+        .catch((err) => res.json(err));
+});
+
+router.delete("/deleteAll/", async(req, res, next) => {
+    const request = await request_form.aggregate([
+        { $match: {} },
+        {
+            $project: {
+                id: {
+                    $toString: "$_id",
+                },
+            },
+        },
+    ]);
+    let arr = [];
+    if (request.length > 0) {
+        for (let index = 0; index < request.length; index++) {
+            arr.push(await request_form.deleteMany({ _id: request[index].id }));
+            arr.push(
+                await formStep1Detail.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep2TestPurpose.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep3TestingType.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await formStep4TestingCondition.deleteMany({
+                    requestId: request[index].id,
+                })
+            );
+            arr.push(
+                await formStep5UserApprove.deleteMany({ requestId: request[index].id })
+            );
+            arr.push(
+                await queue.deleteMany({ 'work.requestId': request[index].id })
+            );
+            if (index + 1 == request.length) {
+                Promise.all(arr)
+                    .then((result) => {
+                        res.sendStatus(200);
+                    })
+                    .catch((err) => res.json(err));
+            }
+        }
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+router.post("/count", (req, res, next) => {
+    const condition = [{
+            $match: {
+                createdAt: {
+                    $gte: new Date(req.body.date),
+                },
+                corporate: {
+                    $eq: req.body.corporate,
+                },
+            },
+        },
+        {
+            $count: "document",
+        },
+    ];
+    request_form.aggregate(condition).exec((err, result) => {
+        res.json(result);
+    });
 });
 
 async function checkDuplicateRequestNo(controlNo) {
@@ -528,37 +554,6 @@ async function createFormStep5UserRequest(body, requestId) {
     return await formStep5UserApprove.create(data);
 }
 
-// router.post("/insert", async(req, res, next) => {
-//     let body = req.body;
-//     const result = await request_form.aggregate([{
-//         $match: {
-//             "step1.controlNo": body.step1.controlNo,
-//         },
-//     }, ]);
-//     if (result.length > 0) {
-//         const result = await request_form
-//             .aggregate([])
-//             .sort({ createdAt: -1 })
-//             .limit(1);
-//         body.step1.controlNo = await genControlNo(result[0]);
-//         request_form.insertMany(body, (err, result) => {
-//             if (err) {
-//                 res.json(err);
-//             } else {
-//                 const text = `duplicate control no. Now changed to ${result[0].step1.controlNo}`;
-//                 res.json({ msg: text });
-//             }
-//         });
-//     } else {
-//         request_form.insertMany(body, (err, result) => {
-//             if (err) {
-//                 res.json(err);
-//             } else {
-//                 res.json(result);
-//             }
-//         });
-//     }
-// });
 
 function genControlNo(result) {
     return new Promise((resolve) => {
@@ -576,98 +571,5 @@ function genControlNo(result) {
     });
 }
 
-router.put("/update/:id", (req, res, next) => {
-    const { id } = req.params;
-    request_form
-        .updateMany({ _id: id }, { $set: req.body })
-        .exec((err, result) => {
-            if (err) {
-                res.json(err);
-            } else {
-                res.json(result);
-            }
-        });
-});
-
-router.delete("/delete/:id", async(req, res, next) => {
-    const { id } = req.params;
-    let arr = [];
-    arr.push(await request_form.deleteMany({ _id: id }));
-    arr.push(await formStep1Detail.deleteMany({ requestId: id }));
-    arr.push(await formStep2TestPurpose.deleteMany({ requestId: id }));
-    arr.push(await formStep3TestingType.deleteMany({ requestId: id }));
-    arr.push(await formStep4TestingCondition.deleteMany({ requestId: id }));
-    arr.push(await formStep5UserApprove.deleteMany({ requestId: id }));
-    Promise.all(arr)
-        .then((result) => {
-            res.sendStatus(200);
-        })
-        .catch((err) => res.json(err));
-});
-
-router.delete("/deleteAll/", async(req, res, next) => {
-    const request = await request_form.aggregate([
-        { $match: {} },
-        {
-            $project: {
-                id: {
-                    $toString: "$_id",
-                },
-            },
-        },
-    ]);
-    let arr = [];
-    if (request.length > 0) {
-        for (let index = 0; index < request.length; index++) {
-            arr.push(await request_form.deleteMany({ _id: request[index].id }));
-            arr.push(
-                await formStep1Detail.deleteMany({ requestId: request[index].id })
-            );
-            arr.push(
-                await formStep2TestPurpose.deleteMany({ requestId: request[index].id })
-            );
-            arr.push(
-                await formStep3TestingType.deleteMany({ requestId: request[index].id })
-            );
-            arr.push(
-                await formStep4TestingCondition.deleteMany({
-                    requestId: request[index].id,
-                })
-            );
-            arr.push(
-                await formStep5UserApprove.deleteMany({ requestId: request[index].id })
-            );
-            if (index + 1 == request.length) {
-                Promise.all(arr)
-                    .then((result) => {
-                        res.sendStatus(200);
-                    })
-                    .catch((err) => res.json(err));
-            }
-        }
-    } else {
-        res.sendStatus(400);
-    }
-});
-
-router.post("/count", (req, res, next) => {
-    const condition = [{
-            $match: {
-                createdAt: {
-                    $gte: new Date(req.body.date),
-                },
-                corporate: {
-                    $eq: req.body.corporate,
-                },
-            },
-        },
-        {
-            $count: "document",
-        },
-    ];
-    request_form.aggregate(condition).exec((err, result) => {
-        res.json(result);
-    });
-});
 
 module.exports = router;

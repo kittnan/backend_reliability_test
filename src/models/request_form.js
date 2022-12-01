@@ -8,7 +8,10 @@ const request_form = new Schema({
     corporate: String,
     status: String,
     table: {},
-    nextApprove: {}
+    nextApprove: {
+        _id: String,
+        name: String
+    }
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("request_form", request_form);
