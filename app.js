@@ -30,6 +30,12 @@ let operate_items = require("./src/routes/operate_items");
 let function_chamber = require("./src/routes/function_chamber");
 let chamber_list = require("./src/routes/chamber_list");
 let queue = require("./src/routes/queue");
+let report = require("./src/routes/report");
+let step1 = require("./src/routes/step1");
+let step2 = require("./src/routes/step2");
+let step3 = require("./src/routes/step3");
+let step4 = require("./src/routes/step4");
+let step5 = require("./src/routes/step5");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
@@ -57,5 +63,11 @@ app.use("/operate_items", operate_items);
 app.use("/function_chamber", function_chamber);
 app.use("/chamber_list", chamber_list);
 app.use("/queue", queue);
+app.use("/report", report);
+app.use("/step1", step1);
+app.use("/step2", step2);
+app.use("/step3", step3);
+app.use("/step4", step4);
+app.use("/step5", step5);
 
 module.exports = app;

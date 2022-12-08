@@ -8,6 +8,8 @@ const formStep5UserApprove = new Schema({
     userName: String,
     statusApprove: Boolean,
     dateApprove: Date,
+    dateReject: Date,
+    comment: [],
     level: Number
 }, { timestamps: true, versionKey: false, strict: true });
 

@@ -15,6 +15,7 @@ const data = new Schema({
         startDate: Date,
         endDate: Date,
         hr: Number,
+        files: []
     }, ],
     work: {
         requestId: String,

@@ -81,6 +81,14 @@ router.get("/id/:id", (req, res, next) => {
             },
         },
         {
+            $lookup: {
+                from: "queues",
+                localField: "_id",
+                foreignField: "work.requestId",
+                as: "queues",
+            },
+        },
+        {
             $project: {
                 step1: {
                     $first: "$step1",
@@ -97,7 +105,7 @@ router.get("/id/:id", (req, res, next) => {
                 step5: "$step5",
                 status: "$status",
                 table: "$table",
-
+                queues: "$queues",
             },
         },
     ];
@@ -108,9 +116,9 @@ router.get("/id/:id", (req, res, next) => {
     });
 });
 
-
 // TODO get to table
 router.get("/table/:userId/:status", async(req, res, next) => {
+    console.log(req.params);
     const { userId, status } = req.params;
     const newStatus = JSON.parse(status);
     const approve = await formStep5UserApprove.aggregate([{
@@ -188,7 +196,6 @@ router.get("/table/:userId/:status", async(req, res, next) => {
         });
 });
 
-
 // TODO get to table manage
 router.get(
     "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
@@ -205,10 +212,8 @@ router.get(
         }, ]);
 
         res.json(approve);
-
     }
 );
-
 
 router.get("/condition/:userId/:status", (req, res, next) => {
     let { userId, status } = req.params;
@@ -327,6 +332,36 @@ router.post("/getByCondition/", (req, res, next) => {
     });
 });
 
+router.post("/draft", async(req, res, next) => {
+    let payload = req.body;
+    const resultDuplicate = await checkDuplicateRequestNo(payload.controlNo);
+    let newControlNo = "";
+    if (resultDuplicate.length === 0) {
+        newControlNo = payload.controlNo;
+    } else {
+        const splitStr = payload.controlNo.split("-");
+        const lastRecord = await request_form
+            .aggregate([{
+                $match: {
+                    corporate: splitStr[0].toLowerCase(),
+                },
+            }, ])
+            .sort({ createdAt: -1 })
+            .limit(1);
+        const oldControlNo = lastRecord[0].controlNo.split("-")[3];
+        const oldControlNoNum = Number(oldControlNo) + 1;
+        const oldControlNoStr = oldControlNoNum.toString();
+        let temp = "";
+        if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
+        if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
+        newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}`;
+        payload.controlNo = newControlNo
+    }
+    const createRequestFormResult = await request_form.insertMany(payload)
+    res.json(createRequestFormResult)
+});
+
+
 router.post("/insert", async(req, res, next) => {
     let payload = req.body;
     // console.log(payload);
@@ -372,7 +407,6 @@ router.post("/insert", async(req, res, next) => {
     // res.statusCode = 200;
     res.json(createRequestFormResult);
 });
-
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
@@ -435,9 +469,7 @@ router.delete("/deleteAll/", async(req, res, next) => {
             arr.push(
                 await formStep5UserApprove.deleteMany({ requestId: request[index].id })
             );
-            arr.push(
-                await queue.deleteMany({ 'work.requestId': request[index].id })
-            );
+            arr.push(await queue.deleteMany({ "work.requestId": request[index].id }));
             if (index + 1 == request.length) {
                 Promise.all(arr)
                     .then((result) => {
@@ -554,7 +586,6 @@ async function createFormStep5UserRequest(body, requestId) {
     return await formStep5UserApprove.create(data);
 }
 
-
 function genControlNo(result) {
     return new Promise((resolve) => {
         const res_split = result.step1.controlNo.split("-");
@@ -570,6 +601,5 @@ function genControlNo(result) {
         );
     });
 }
-
 
 module.exports = router;
