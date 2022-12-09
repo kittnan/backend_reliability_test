@@ -3,17 +3,26 @@ let router = express.Router();
 
 const step3 = require("../models/form-step3-testingType");
 
-
-
 router.get("", (req, res, next) => {
-    step3.find({}).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
-    });
+    console.log(req.query);
+    const { requestId } = req.query;
+    step3
+        .aggregate([{
+            $match: {
+                requestId: requestId,
+            },
+        }, ])
+        .exec((err, result) => {
+            console.log(err, result);
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+
 });
+
 
 router.post("/insert", async(req, res, next) => {
     step3.insertMany(req.body, (err, result) => {

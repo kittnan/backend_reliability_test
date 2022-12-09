@@ -6,6 +6,7 @@ const step1 = require("../models/form-step1-detail");
 
 
 router.get("", (req, res, next) => {
+    console.log(req.params);
     step1.find({}).exec((err, result) => {
         if (err) {
             res.json(err);

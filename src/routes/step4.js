@@ -5,14 +5,25 @@ const step4 = require("../models/form-step4-testingCondition");
 
 
 
+
 router.get("", (req, res, next) => {
-    step4.find({}).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
-    });
+    console.log(req.query);
+    const { requestId } = req.query;
+    step4
+        .aggregate([{
+            $match: {
+                requestId: requestId,
+            },
+        }, ])
+        .exec((err, result) => {
+            console.log(err, result);
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
+
 });
 
 router.post("/insert", async(req, res, next) => {
