@@ -38,6 +38,7 @@ router.get("/id/:id", (req, res, next) => {
                 },
                 status: "$status",
                 table: "$table",
+                nextApprove: '$nextApprove'
             },
         },
         {
@@ -105,6 +106,7 @@ router.get("/id/:id", (req, res, next) => {
                 step5: "$step5",
                 status: "$status",
                 table: "$table",
+                nextApprove: "$nextApprove",
                 queues: "$queues",
             },
         },
@@ -332,6 +334,8 @@ router.post("/getByCondition/", (req, res, next) => {
     });
 });
 
+
+// !new
 router.post("/draft", async(req, res, next) => {
     let payload = req.body;
     const resultDuplicate = await checkDuplicateRequestNo(payload.controlNo);
@@ -360,7 +364,7 @@ router.post("/draft", async(req, res, next) => {
     const createRequestFormResult = await request_form.insertMany(payload)
     res.json(createRequestFormResult)
 });
-
+// !new
 
 router.post("/insert", async(req, res, next) => {
     let payload = req.body;

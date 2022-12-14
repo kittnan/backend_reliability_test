@@ -7,7 +7,6 @@ const step4 = require("../models/form-step4-testingCondition");
 
 
 router.get("", (req, res, next) => {
-    console.log(req.query);
     const { requestId } = req.query;
     step4
         .aggregate([{

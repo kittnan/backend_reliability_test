@@ -3,16 +3,23 @@ let router = express.Router();
 
 const step5 = require("../models/form-step5-userApprove");
 
-
-
 router.get("", (req, res, next) => {
-    step5.find({}).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
-    });
+    const { requestId } = req.query;
+    step5
+        .aggregate([{
+            $match: {
+                requestId: requestId,
+            },
+        }, ])
+        .sort({ level: 1 })
+        .exec((err, result) => {
+            console.log(err, result);
+            if (err) {
+                res.json(err);
+            } else {
+                res.json(result);
+            }
+        });
 });
 
 router.post("/insert", async(req, res, next) => {
