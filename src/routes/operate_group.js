@@ -6,190 +6,34 @@ const operate_items = require("../models/operate-items");
 
 const operate_group = require("../models/operate-group");
 
-// router.get("", (req, res, next) => {
-//     const con = [
-//         { $match: {} },
-//         {
-//             $project: {
-//                 code: "$code",
-//                 name: "$name",
-//                 attachment: "$operate.attachment",
-//                 power: "$operate.power",
-//                 checker: "$operate.checker",
-//                 status: "$status",
-//             },
-//         },
-//         {
-//             $lookup: {
-//                 from: "operate_items",
-//                 localField: "power.code",
-//                 foreignField: "code",
-//                 as: "power2",
-//             },
-//         },
-//         {
-//             $lookup: {
-//                 from: "operate_items",
-//                 localField: "checker.code",
-//                 foreignField: "code",
-//                 as: "checker2",
-//             },
-//         },
-//         {
-//             $lookup: {
-//                 from: "operate_items",
-//                 localField: "attachment.code",
-//                 foreignField: "code",
-//                 as: "attachment2",
-//             },
-//         },
-//     ];
-//     operate_group.aggregate(con).exec(async(err, result) => {
-//         if (err) {
-//             res.json(err);
-//         } else {
-//             // res.json(result);
-//             res.json(await good(result));
-//         }
-//     });
-//     //   operate_group.find({}).exec((err, result) => {
-//     //     if (err) {
-//     //       res.json(err);
-//     //     } else {
-//     //       res.json(result);
-//     //     }
-//     //   });
-// });
-
-// function good(result) {
-//     return new Promise((resolve) => {
-//         console.log(result.checker);
-//         let operateArr = [];
-//         const temp = result.map(re => {
-//             for (let index = 0; index < re.checker.length; index++) {
-//                 const e_checker = re.checker[index];
-//                 const e_checker2 = re.checker2[index] || re.checker2[index - 1];
-//                 const e_attachment = re.attachment[index];
-//                 const e_attachment2 = re.attachment2[index] || re.attachment2[index - 1];
-//                 const e_power = re.power[index];
-//                 const e_power2 = re.power2[index] || re.power2[index - 1];
-//                 operateArr.push({
-//                     attachment: {
-//                         ...e_attachment,
-//                         name: e_attachment2.name,
-//                     },
-//                     power: {
-//                         ...e_power,
-//                         name: e_power2,
-//                     },
-//                     checker: {
-//                         ...e_checker,
-//                         name: e_checker2,
-//                     },
-//                 });
-//                 if (index + 1 == re.checker.length) {
-//                     return {
-//                         code: re.code,
-//                         name: re.name,
-//                         status: re.status,
-//                         _id: re._id,
-//                         operate: operateArr,
-//                     };
-//                 }
-//             }
-//         });
-//         resolve(temp)
-//     });
-// }
-
-// function mapOperateGroup(result) {
-//     return new Promise((resolve) => {
-//         const resData = result.map((re) => {
-//             const a = foo(re);
-//             console.log(a);
-//         });
-//         resolve(resData);
-//     });
-// }
-
-// function foo(re) {
-//     let operateArr = [];
-//     for (let index = 0; index < re.attachment.length; index++) {
-//         const newAttachment = re.attachment.map((att) => {
-//             const temp = re.attachment2.find((att2) => att2.code == att.code);
-//             return {
-//                 ...att,
-//                 name: temp.name,
-//             };
-//         });
-//         const newPower = re.power.map((att) => {
-//             const temp = re.power2.find((att2) => att2.code == att.code);
-//             return {
-//                 ...att,
-//                 name: temp.name,
-//             };
-//         });
-//         const newChecker = re.checker.map((att) => {
-//             const temp = re.checker2.find((att2) => att2.code == att.code);
-//             return {
-//                 ...att,
-//                 name: temp.name,
-//             };
-//         });
-
-//         re.attachment = newAttachment;
-//         re.power = newPower;
-//         re.checker = newChecker;
-
-//         operateArr.push({
-//             attachment: re.attachment,
-//             power: re.power,
-//             checker: re.checker,
-//         });
-
-//         // arr.push({
-//         //   code: re.code,
-//         //   name: re.name,
-//         //   status: re.status,
-//         //   _id: re._id,
-//         //   operate: {
-//         //     attachment: re.attachment,
-//         //     power: re.power,
-//         //     checker: re.checker,
-//         //   },
-//         // });
-//         if (index + 1 == re.attachment.length) {
-//             return {
-//                 code: re.code,
-//                 name: re.name,
-//                 status: re.status,
-//                 _id: re._id,
-//                 operate: operateArr,
-//             };
-//         }
-//         // return {
-//         //     code: re.code,
-//         //     name: re.name,
-//         //     status: re.status,
-//         //     _id: re._id,
-//         //     operate: {
-//         //         attachment: re.attachment,
-//         //         power: re.power,
-//         //         checker: re.checker,
-//         //     },
-//         // };
-//     }
-// }
-
-router.get("", (req, res, next) => {
-    operate_group.find({}).exec((err, result) => {
-        if (err) {
-            res.json(err);
-        } else {
-            res.json(result);
-        }
+router.get("/", (req, res, next) => {
+    operate_group.aggregate([{ $match: {} }]).exec((err, result) => {
+        if (err) res.json(err);
+        res.json(result);
     });
 });
+router.get("/ready2", async(req, res, next) => {
+    const { startDate } = req.query;
+    const groups = await operate_group.aggregate([{ $match: {} }]);
+
+    const temp = groups.filter(g => {
+        return foo1(g)
+    })
+    res.json(temp);
+});
+
+function foo1(group) {
+    // console.log(group);
+    const temp = group.operate.map(o => {
+        return foo2(group.operate)
+    })
+    return temp
+}
+
+function foo2(operate) {
+    console.log(operate);
+    return operate
+}
 
 router.get("/ready/:startDate/:operate", async(req, res, next) => {
     const { startDate, operate } = req.params;
@@ -218,7 +62,12 @@ router.get("/ready/:startDate/:operate", async(req, res, next) => {
             code: operateJson.power.code,
         },
     }, ]);
-    const r_power = checkStock(run_power, operateJson, "power", stock_power[0].stock);
+    const r_power = checkStock(
+        run_power,
+        operateJson,
+        "power",
+        stock_power[0].stock
+    );
 
     const stock_attachment = await operate_items.aggregate([{
         $match: {
@@ -231,10 +80,10 @@ router.get("/ready/:startDate/:operate", async(req, res, next) => {
         "attachment",
         stock_attachment[0].stock
     );
-    let text = ""
-    r_checker.status ? text += "" : text += r_checker.statusText
-    r_power.status ? text += "" : text += r_power.statusText
-    r_attachment.status ? text += "" : text += r_attachment.statusText
+    let text = "";
+    r_checker.status ? (text += "") : (text += r_checker.statusText);
+    r_power.status ? (text += "") : (text += r_power.statusText);
+    r_attachment.status ? (text += "") : (text += r_attachment.statusText);
 
     if (r_checker.status && r_power.status && r_attachment.status) {
         res.json({
@@ -246,7 +95,7 @@ router.get("/ready/:startDate/:operate", async(req, res, next) => {
             <p>checker in stock is ${r_checker.statusText}/${stock_checker[0].stock}</p>
             <p>power in stock is ${r_power.statusText}/${stock_power[0].stock}</p>
             <p>attachment in stock is ${r_attachment.statusText}/${stock_attachment[0].stock}</p>
-            `
+            `,
         });
     } else {
         res.json({
@@ -258,7 +107,7 @@ router.get("/ready/:startDate/:operate", async(req, res, next) => {
             <p>checker in stock is ${r_checker.statusText}/${stock_checker[0].stock}</p>
             <p>power in stock is ${r_power.statusText}/${stock_power[0].stock}</p>
             <p>attachment in stock is ${r_attachment.statusText}/${stock_attachment[0].stock}</p>
-            `
+            `,
         });
     }
 });
@@ -269,14 +118,14 @@ function checkStock(run, operate, key, stock) {
             return {
                 ...operate[key],
                 status: true,
-                statusText: Number(run[0].total) + Number(operate[key].qty)
+                statusText: Number(run[0].total) + Number(operate[key].qty),
             };
         } else {
             return {
                 ...operate[key],
                 status: false,
                 statusText: Number(run[0].total) + Number(operate[key].qty),
-                statusText: Number(run[0].total) + Number(operate[key].qty)
+                statusText: Number(run[0].total) + Number(operate[key].qty),
             };
         }
     } else {
@@ -284,13 +133,13 @@ function checkStock(run, operate, key, stock) {
             return {
                 ...operate[key],
                 status: true,
-                statusText: Number(operate[key].qty)
+                statusText: Number(operate[key].qty),
             };
         } else {
             return {
                 ...operate[key],
                 status: false,
-                statusText: Number(operate[key].qty)
+                statusText: Number(operate[key].qty),
             };
         }
     }

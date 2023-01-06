@@ -11,7 +11,9 @@ const request_form = new Schema({
     nextApprove: {
         _id: String,
         name: String
-    }
+    },
+    comment: String,
+    level: Number
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("request_form", request_form);

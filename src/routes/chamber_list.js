@@ -14,6 +14,8 @@ router.get("", (req, res, next) => {
     });
 });
 
+
+
 router.get("/chamber/:value", (req, res, next) => {
     const { value } = req.params;
     chamber_list
@@ -31,9 +33,10 @@ router.get("/chamber/:value", (req, res, next) => {
         });
 });
 
-router.get("/ready/:value/:startDate/:qty", async(req, res, next) => {
+router.get("/ready", async(req, res, next) => {
+    const { value, startDate, qty } = req.query;
     try {
-        const { value, startDate, qty } = req.params;
+        // const { value, startDate, qty } = req.params;
         const chamber = await chamber_list.aggregate([{
             $match: {
                 "function.value": Number(value),
@@ -112,8 +115,7 @@ function mapChamber(chamber, r_queue, remain, qty) {
         resolve(
             chamber.map((c) => {
                 const foundItem = r_queue.find((q) => q._id == c.code) ?
-                    r_queue.find((q) => q._id == c.code) :
-                    {
+                    r_queue.find((q) => q._id == c.code) : {
                         total: 0,
                     };
                 let freeCap = Number(c.capacity) - Number(foundItem.total);

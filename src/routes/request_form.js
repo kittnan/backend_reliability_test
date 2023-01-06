@@ -38,7 +38,7 @@ router.get("/id/:id", (req, res, next) => {
                 },
                 status: "$status",
                 table: "$table",
-                nextApprove: '$nextApprove'
+                nextApprove: "$nextApprove",
             },
         },
         {
@@ -120,17 +120,22 @@ router.get("/id/:id", (req, res, next) => {
 
 // TODO get to table
 router.get("/table/:userId/:status", async(req, res, next) => {
-    console.log(req.params);
     const { userId, status } = req.params;
+    console.log(userId);
     const newStatus = JSON.parse(status);
     const approve = await formStep5UserApprove.aggregate([{
         $match: {
-            userId: userId,
+            $or: [{
+                    "nextUser._id": userId,
+                },
+                {
+                    "prevUser._id": userId,
+                },
+            ],
         },
     }, ]);
     const requestId = approve.map((ap) => ap.requestId);
     console.log(requestId);
-
     const condition = [{
             $project: {
                 requestId: {
@@ -193,11 +198,164 @@ router.get("/table/:userId/:status", async(req, res, next) => {
         .aggregate(condition)
         .sort({ createdAt: -1 })
         .exec((err, result) => {
+            console.log(err, result);
             if (err) res.json(err);
             res.json(result);
         });
 });
 
+router.get("/tableShowCount", async(req, res, next) => {
+    const { userId, status } = req.query;
+    let conStatus = {};
+    if (status && status == "ongoing") {
+        conStatus = {
+            status: {
+                $nin: ["cancel", "finish"],
+            },
+        };
+    }
+    if (status && status == "finish") {
+        conStatus = {
+            status: {
+                $in: ["finish", "closed"],
+            },
+        };
+    }
+    if (status && status == "all") {
+        conStatus = {};
+    }
+    const approve = await formStep5UserApprove.aggregate([{
+            $match: {
+                $or: [{
+                        "nextUser._id": userId,
+                    },
+                    {
+                        "prevUser._id": userId,
+                    },
+                ],
+            },
+        },
+
+    ]);
+    const requestId = approve.map((ap) => ap.requestId);
+    const unique = [...new Set(requestId.map((item) => ObjectId(item)))];
+    const form = await request_form.aggregate([{
+            $match: {
+                _id: {
+                    $in: unique,
+                },
+            },
+        },
+        {
+            $match: conStatus
+        },
+        {
+            $count: 'count'
+        }
+    ])
+    res.json(form)
+
+});
+
+router.get("/tableShow", async(req, res, next) => {
+    const { userId, status } = req.query;
+    const approve = await formStep5UserApprove.aggregate([{
+        $match: {
+            $or: [{
+                    "nextUser._id": userId,
+                },
+                {
+                    "prevUser._id": userId,
+                },
+            ],
+        },
+    }, ]);
+    const requestId = approve.map((ap) => ap.requestId);
+    const unique = [...new Set(requestId.map((item) => item))];
+    let conStatus = {};
+    if (status && status == "ongoing") {
+        conStatus = {
+            status: {
+                $nin: ["cancel", "finish"],
+            },
+        };
+    }
+    if (status && status == "finish") {
+        conStatus = {
+            status: {
+                $in: ["finish", "closed"],
+            },
+        };
+    }
+    if (status && status == "all") {
+        conStatus = {};
+    }
+    const condition = [{
+            $project: {
+                requestId: {
+                    $toString: "$_id",
+                },
+                status: "$status",
+                nextApprove: "$nextApprove",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+        {
+            $match: {
+                requestId: {
+                    $in: unique,
+                },
+            },
+        },
+        {
+            $match: conStatus,
+        },
+        {
+            $lookup: {
+                from: "formstep1details",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step1",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep5userapproves",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step5",
+            },
+        },
+        {
+            $project: {
+                requestId: "$requestId",
+                controlNo: {
+                    $first: "$step1.controlNo",
+                },
+                lotNo: {
+                    $first: "$step1.lotNo",
+                },
+                modelNo: {
+                    $first: "$step1.modelNo",
+                },
+                step5: "$step5",
+                status: "$status",
+                nextApprove: "$nextApprove",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+    ];
+
+    request_form
+        .aggregate(condition)
+        .sort({ createdAt: -1 })
+        .exec((err, result) => {
+            if (err) res.json(err);
+            res.json(result);
+        });
+});
 // TODO get to table manage
 router.get(
     "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
@@ -334,7 +492,6 @@ router.post("/getByCondition/", (req, res, next) => {
     });
 });
 
-
 // !new
 router.post("/draft", async(req, res, next) => {
     let payload = req.body;
@@ -359,58 +516,59 @@ router.post("/draft", async(req, res, next) => {
         if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
         if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
         newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}`;
-        payload.controlNo = newControlNo
+        payload.controlNo = newControlNo;
     }
-    const createRequestFormResult = await request_form.insertMany(payload)
-    res.json(createRequestFormResult)
-});
-// !new
-
-router.post("/insert", async(req, res, next) => {
-    let payload = req.body;
-    // console.log(payload);
-    const resultDuplicate = await checkDuplicateRequestNo(
-        payload.detail.controlNo
-    );
-    let newControlNo = "";
-    if (resultDuplicate.length === 0) {
-        newControlNo = payload.detail.controlNo;
-    } else {
-        const splitStr = payload.detail.controlNo.split("-");
-        const lastRecord = await request_form
-            .aggregate([{
-                $match: {
-                    corporate: splitStr[0].toLowerCase(),
-                },
-            }, ])
-            .sort({ createdAt: -1 })
-            .limit(1);
-        // console.log(lastRecord);
-        // const oldControlNo = splitStr[3];
-        const oldControlNo = lastRecord[0].controlNo.split("-")[3];
-        const oldControlNoNum = Number(oldControlNo) + 1;
-        const oldControlNoStr = oldControlNoNum.toString();
-        let temp = "";
-        if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
-        if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
-        newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}-${splitStr[5]}`;
-    }
-
-    payload.detail.controlNo = newControlNo;
-    const userApprove = await userModel.findById(payload.userApprove.userId);
-    const createRequestFormResult = await createRequestForm(payload, userApprove);
-    await filesManage(createRequestFormResult, payload.detail.files);
-    await createFormStep1Detail(payload, createRequestFormResult._id);
-    await createFormStep2TestPurpose(payload, createRequestFormResult._id);
-    await createFormStep3TestingType(payload, createRequestFormResult._id);
-    await createFormStep4TestingCondition(payload, createRequestFormResult._id);
-    await createFormStep5UserRequest(payload, createRequestFormResult._id);
-    await createFormStep5UserApprove(payload, createRequestFormResult._id);
-    // console.log(createFormStep1Result);
-    // console.log(createFormStep2Result);
-    // res.statusCode = 200;
+    const createRequestFormResult = await request_form.insertMany(payload);
     res.json(createRequestFormResult);
 });
+
+// !new
+
+// router.post("/insert", async(req, res, next) => {
+//     let payload = req.body;
+//     // console.log(payload);
+//     const resultDuplicate = await checkDuplicateRequestNo(
+//         payload.detail.controlNo
+//     );
+//     let newControlNo = "";
+//     if (resultDuplicate.length === 0) {
+//         newControlNo = payload.detail.controlNo;
+//     } else {
+//         const splitStr = payload.detail.controlNo.split("-");
+//         const lastRecord = await request_form
+//             .aggregate([{
+//                 $match: {
+//                     corporate: splitStr[0].toLowerCase(),
+//                 },
+//             }, ])
+//             .sort({ createdAt: -1 })
+//             .limit(1);
+//         // console.log(lastRecord);
+//         // const oldControlNo = splitStr[3];
+//         const oldControlNo = lastRecord[0].controlNo.split("-")[3];
+//         const oldControlNoNum = Number(oldControlNo) + 1;
+//         const oldControlNoStr = oldControlNoNum.toString();
+//         let temp = "";
+//         if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
+//         if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
+//         newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}-${splitStr[5]}`;
+//     }
+
+//     payload.detail.controlNo = newControlNo;
+//     const userApprove = await userModel.findById(payload.userApprove.userId);
+//     const createRequestFormResult = await createRequestForm(payload, userApprove);
+//     await filesManage(createRequestFormResult, payload.detail.files);
+//     await createFormStep1Detail(payload, createRequestFormResult._id);
+//     await createFormStep2TestPurpose(payload, createRequestFormResult._id);
+//     await createFormStep3TestingType(payload, createRequestFormResult._id);
+//     await createFormStep4TestingCondition(payload, createRequestFormResult._id);
+//     await createFormStep5UserRequest(payload, createRequestFormResult._id);
+//     await createFormStep5UserApprove(payload, createRequestFormResult._id);
+//     // console.log(createFormStep1Result);
+//     // console.log(createFormStep2Result);
+//     // res.statusCode = 200;
+//     res.json(createRequestFormResult);
+// });
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
@@ -425,10 +583,10 @@ router.put("/update/:id", (req, res, next) => {
         });
 });
 
-router.delete("/delete/:id", async(req, res, next) => {
-    const { id } = req.params;
+router.delete("/delete/", async(req, res, next) => {
+    const { id } = req.query;
     let arr = [];
-    arr.push(await request_form.deleteMany({ _id: id }));
+    arr.push(await request_form.deleteMany({ _id: ObjectId(id) }));
     arr.push(await formStep1Detail.deleteMany({ requestId: id }));
     arr.push(await formStep2TestPurpose.deleteMany({ requestId: id }));
     arr.push(await formStep3TestingType.deleteMany({ requestId: id }));
