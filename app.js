@@ -8,7 +8,6 @@ app.use(bodyParser.json());
 app.use(cors());
 let mongoose = require("./connect");
 
-
 const NodeCache = require("node-cache");
 const myCache = new NodeCache({ stdTTL: 100, checkperiod: 120 });
 let user = require("./src/routes/user.js");
@@ -36,12 +35,12 @@ let step2 = require("./src/routes/step2");
 let step3 = require("./src/routes/step3");
 let step4 = require("./src/routes/step4");
 let step5 = require("./src/routes/step5");
+let mailer = require("./src/routes/mailer");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
     console.log("Listening on  port " + server.address().port);
 });
-
 
 app.use(morgan("tiny"));
 app.use("/user", user);
@@ -69,5 +68,6 @@ app.use("/step2", step2);
 app.use("/step3", step3);
 app.use("/step4", step4);
 app.use("/step5", step5);
+app.use("/mail", mailer);
 
 module.exports = app;
