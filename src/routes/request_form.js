@@ -91,18 +91,10 @@ router.get("/id/:id", (req, res, next) => {
         },
         {
             $project: {
-                step1: {
-                    $first: "$step1",
-                },
-                step2: {
-                    $first: "$step2",
-                },
-                step3: {
-                    $first: "$step3",
-                },
-                step4: {
-                    $first: "$step4",
-                },
+                step1: { $arrayElemAt: ["$step1", 0] },
+                step2: { $arrayElemAt: ["$step2", 0] },
+                step3: { $arrayElemAt: ["$step3", 0] },
+                step4: { $arrayElemAt: ["$step4", 0] },
                 step5: "$step5",
                 status: "$status",
                 table: "$table",
@@ -176,15 +168,9 @@ router.get("/table/:userId/:status", async(req, res, next) => {
         {
             $project: {
                 requestId: "$requestId",
-                controlNo: {
-                    $first: "$step1.controlNo",
-                },
-                lotNo: {
-                    $first: "$step1.lotNo",
-                },
-                modelNo: {
-                    $first: "$step1.modelNo",
-                },
+                controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
+                lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
+                modelNo: { $arrayElemAt: ["$step1.modelNo", 0] },
                 step5: "$step5",
                 status: "$status",
                 nextApprove: "$nextApprove",
@@ -225,18 +211,16 @@ router.get("/tableShowCount", async(req, res, next) => {
         conStatus = {};
     }
     const approve = await formStep5UserApprove.aggregate([{
-            $match: {
-                $or: [{
-                        "nextUser._id": userId,
-                    },
-                    {
-                        "prevUser._id": userId,
-                    },
-                ],
-            },
+        $match: {
+            $or: [{
+                    "nextUser._id": userId,
+                },
+                {
+                    "prevUser._id": userId,
+                },
+            ],
         },
-
-    ]);
+    }, ]);
     const requestId = approve.map((ap) => ap.requestId);
     const unique = [...new Set(requestId.map((item) => ObjectId(item)))];
     const form = await request_form.aggregate([{
@@ -247,14 +231,13 @@ router.get("/tableShowCount", async(req, res, next) => {
             },
         },
         {
-            $match: conStatus
+            $match: conStatus,
         },
         {
-            $count: 'count'
-        }
-    ])
-    res.json(form)
-
+            $count: "count",
+        },
+    ]);
+    res.json(form);
 });
 
 router.get("/tableShow", async(req, res, next) => {
@@ -327,18 +310,13 @@ router.get("/tableShow", async(req, res, next) => {
                 as: "step5",
             },
         },
+
         {
             $project: {
                 requestId: "$requestId",
-                controlNo: {
-                    $first: "$step1.controlNo",
-                },
-                lotNo: {
-                    $first: "$step1.lotNo",
-                },
-                modelNo: {
-                    $first: "$step1.modelNo",
-                },
+                controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
+                lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
+                modelNo: { $arrayElemAt: ["$step1.modelNo", 0] },
                 step5: "$step5",
                 status: "$status",
                 nextApprove: "$nextApprove",
@@ -352,8 +330,12 @@ router.get("/tableShow", async(req, res, next) => {
         .aggregate(condition)
         .sort({ createdAt: -1 })
         .exec((err, result) => {
-            if (err) res.json(err);
-            res.json(result);
+            if (err) {
+                console.log(err);
+                res.status(500).json(err);
+            } else {
+                res.status(200).json(result);
+            }
         });
 });
 // TODO get to table manage
