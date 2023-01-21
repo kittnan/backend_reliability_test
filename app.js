@@ -6,7 +6,9 @@ let app = express();
 let morgan = require("morgan");
 app.use(bodyParser.json());
 app.use(cors());
-let mongoose = require("./connect");
+const mongoose = require("mongoose");
+mongoose.set("strictQuery", false);
+let mongooseConnect = require("./connect");
 
 const NodeCache = require("node-cache");
 const myCache = new NodeCache({ stdTTL: 100, checkperiod: 120 });
@@ -69,5 +71,15 @@ app.use("/step3", step3);
 app.use("/step4", step4);
 app.use("/step5", step5);
 app.use("/mail", mailer);
+app.use(function(req, res, next) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");
+    res.setHeader(
+        "Access-Control-Allow-Headers",
+        "X-Requested-with,Content-Type"
+    );
+    res.setHeader("Access-Conrol-Allow-Credentials", true);
+    next();
+});
 
 module.exports = app;
