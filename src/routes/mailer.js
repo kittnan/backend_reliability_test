@@ -129,6 +129,9 @@ function genLink(status, formId) {
         case "request_confirm":
             return `${base}/request/confirm?id=${formId}&status=${status}`;
             break;
+        case "request_confirm_edited":
+            return `${base}/request/confirm?id=${formId}&status=${status}`;
+            break;
         case "qe_window_person_report":
             return `${base}/qe-window-person/report?id=${formId}&status=${status}`;
             break;
