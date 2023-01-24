@@ -40,6 +40,7 @@ router.get("/id/:id", (req, res, next) => {
                 table: "$table",
                 nextApprove: "$nextApprove",
                 level: "$level",
+                comment: "$comment",
             },
         },
         {
@@ -102,6 +103,7 @@ router.get("/id/:id", (req, res, next) => {
                 nextApprove: "$nextApprove",
                 queues: "$queues",
                 level: "$level",
+                comment: "$comment",
             },
         },
     ];

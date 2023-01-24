@@ -88,7 +88,7 @@ router.post("/send", async(req, res, next) => {
         -------------------------------------------------------------
     </p>
     <a href="${link}">
-    CLICK
+    click link
     </a>`;
     }
 
