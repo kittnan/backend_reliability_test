@@ -244,6 +244,85 @@ router.get("/tableShowCount", async(req, res, next) => {
     res.json(form);
 });
 
+router.get("/tableShowAdmin", async(req, res, next) => {
+    const { status } = req.query;
+
+    let conStatus = {};
+    if (status && status == "ongoing") {
+        conStatus = {
+            status: {
+                $nin: ["cancel", "finish"],
+            },
+        };
+    }
+    if (status && status == "finish") {
+        conStatus = {
+            status: {
+                $in: ["finish", "closed"],
+            },
+        };
+    }
+    if (status && status == "all") {
+        conStatus = {};
+    }
+    const condition = [{
+            $project: {
+                requestId: {
+                    $toString: "$_id",
+                },
+                status: "$status",
+                nextApprove: "$nextApprove",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+        {
+            $match: conStatus,
+        },
+        {
+            $lookup: {
+                from: "formstep1details",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step1",
+            },
+        },
+        {
+            $lookup: {
+                from: "formstep5userapproves",
+                localField: "requestId",
+                foreignField: "requestId",
+                as: "step5",
+            },
+        },
+
+        {
+            $project: {
+                requestId: "$requestId",
+                controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
+                lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
+                modelNo: { $arrayElemAt: ["$step1.modelNo", 0] },
+                step5: "$step5",
+                status: "$status",
+                nextApprove: "$nextApprove",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+            },
+        },
+    ];
+
+    request_form
+        .aggregate(condition)
+        .sort({ createdAt: -1 })
+        .exec((err, result) => {
+            if (err) {
+                console.log(err);
+                res.status(500).json(err);
+            } else {
+                res.status(200).json(result);
+            }
+        });
+});
 router.get("/tableShow", async(req, res, next) => {
     const { userId, status } = req.query;
     const approve = await formStep5UserApprove.aggregate([{
@@ -555,6 +634,21 @@ router.post("/draft", async(req, res, next) => {
 //     // res.statusCode = 200;
 //     res.json(createRequestFormResult);
 // });
+
+router.get("/corporateRemain", async(req, res, next) => {
+    const { startDate } = req.query;
+    console.log("startDate", startDate);
+    const foo = new Date(startDate);
+    console.log("corporateRemain", foo);
+    const queues = await queue.aggregate([{
+        $match: {
+            endDate: {
+                $gte: new Date(startDate),
+            },
+        },
+    }, ]);
+    res.json(queues);
+});
 
 router.put("/update/:id", (req, res, next) => {
     const { id } = req.params;
