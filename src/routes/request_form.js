@@ -9,6 +9,7 @@ const formStep4TestingCondition = require("../models/form-step4-testingCondition
 const formStep5UserApprove = require("../models/form-step5-userApprove");
 const userModel = require("../models/user");
 const queue = require("../models/queue");
+const department = require("../models/department");
 
 const ObjectId = require("mongodb").ObjectID;
 
@@ -638,6 +639,7 @@ router.post("/draft", async(req, res, next) => {
 router.get("/corporateRemain", async(req, res, next) => {
     const { startDate } = req.query;
     console.log("startDate", startDate);
+
     const foo = new Date(startDate);
     console.log("corporateRemain", foo);
     const queues = await queue.aggregate([{
@@ -647,7 +649,22 @@ router.get("/corporateRemain", async(req, res, next) => {
             },
         },
     }, ]);
-    res.json(queues);
+    const requestId = queues.map((q) => ObjectId(q.work.requestId));
+    const requestData = await request_form.aggregate([{
+        $match: {
+            _id: {
+                $in: requestId,
+            },
+        },
+    }, ]);
+    const corporate = ["dst", "amt"];
+    const corporateData = corporate.map((u) => {
+        return {
+            name: u,
+            value: requestData.filter((d) => d.corporate === u).length,
+        };
+    });
+    res.json(corporateData);
 });
 
 router.put("/update/:id", (req, res, next) => {
