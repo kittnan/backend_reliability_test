@@ -15,7 +15,14 @@ const data = new Schema({
         startDate: Date,
         endDate: Date,
         hr: Number,
-        files: []
+        files: [],
+    }, ],
+    reportQE: [{
+        at: Number,
+        startDate: Date,
+        endDate: Date,
+        hr: Number,
+        files: [],
     }, ],
     work: {
         requestId: String,
@@ -30,26 +37,25 @@ const data = new Schema({
         attachment: {
             code: String,
             name: String,
-            qty: Number
+            qty: Number,
         },
         checker: {
             code: String,
             name: String,
-            qty: Number
+            qty: Number,
         },
         power: {
             code: String,
             name: String,
-            qty: Number
+            qty: Number,
         },
-        status: Boolean
-
+        status: Boolean,
     },
     chamber: {
         code: String,
-        name: String
+        name: String,
     },
-    status: String
+    status: String,
 }, { timestamps: true, versionKey: false });
 
 const UserModule = mongoose.model("queue", data);
