@@ -1,62 +1,71 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const data = new Schema({
+const data = new Schema(
+  {
     startDate: Date,
     endDate: Date,
-    inspectionTime: [{
+    inspectionTime: [
+      {
         at: Number,
         startDate: Date,
         endDate: Date,
         hr: Number,
-    }, ],
-    reportTime: [{
+      },
+    ],
+    reportTime: [
+      {
         at: Number,
         startDate: Date,
         endDate: Date,
         hr: Number,
         files: [],
-    }, ],
-    reportQE: [{
+      },
+    ],
+    reportQE: [
+      {
         at: Number,
         startDate: Date,
         endDate: Date,
         hr: Number,
         files: [],
-    }, ],
+      },
+    ],
     work: {
-        requestId: String,
-        qty: Number,
-        controlNo: String,
+      requestId: String,
+      qty: Number,
+      controlNo: String,
     },
     condition: {
-        value: String,
-        name: String,
+      value: String,
+      name: String,
     },
     operate: {
-        attachment: {
-            code: String,
-            name: String,
-            qty: Number,
-        },
-        checker: {
-            code: String,
-            name: String,
-            qty: Number,
-        },
-        power: {
-            code: String,
-            name: String,
-            qty: Number,
-        },
-        status: Boolean,
-    },
-    chamber: {
+      attachment: {
         code: String,
         name: String,
+        qty: Number,
+      },
+      checker: {
+        code: String,
+        name: String,
+        qty: Number,
+      },
+      power: {
+        code: String,
+        name: String,
+        qty: Number,
+      },
+      status: Boolean,
+    },
+    chamber: {
+      code: String,
+      name: String,
     },
     status: String,
-}, { timestamps: true, versionKey: false });
+  },
+  { timestamps: true, versionKey: false }
+);
 
 const UserModule = mongoose.model("queue", data);
 

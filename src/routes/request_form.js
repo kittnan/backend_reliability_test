@@ -10,6 +10,7 @@ const formStep5UserApprove = require("../models/form-step5-userApprove");
 const userModel = require("../models/user");
 const queue = require("../models/queue");
 const chamber_list = require("../models/chamber_list");
+const operate_item = require("../models/operate-items");
 const moment = require("moment");
 
 const ObjectId = require("mongodb").ObjectID;
@@ -804,9 +805,13 @@ router.get("/dailyRemain", async (req, res, next) => {
       time["diff"] = diff;
       const report = q.reportQE.find((qe) => qe.at === time.at);
       time["report"] = report ? true : false;
+
+      return true;
       if (diff <= 24) return true;
       return false;
     });
+
+    console.log(now);
     now.sort((a, b) => {
       return new Date(b.endDate) - new Date(a.endDate);
     });
@@ -848,11 +853,58 @@ router.get("/chamberRemain", async (req, res, next) => {
       ...c,
       capacity: Number(c.capacity),
       use: use,
+      usedPercent: `${((use / Number(c.capacity)) * 100).toFixed(2)}%`,
     };
   });
 
   res.json(mapChamber);
 });
+
+router.get("/operateRemain", async (req, res, next) => {
+  const { startDate } = req.query;
+  console.log("startDate", startDate);
+
+  const operateItem = await operate_item.aggregate([
+    {
+      $match: {
+        status: "ready",
+      },
+    },
+  ]);
+
+  const queues = await queue.aggregate([
+    {
+      $match: {
+        endDate: {
+          $gte: new Date(startDate),
+        },
+      },
+    },
+  ]);
+
+  const newOperate = operateItem.map((o) => {
+    return {
+      ...o,
+      queue: loopQueue(queues, o.type, o),
+    };
+  });
+
+  res.json(newOperate);
+});
+function loopQueue(queues, operateType, o) {
+  const queueFilter = queues.filter(
+    (q) => q.operate.status && q.operate[operateType].code === o.code
+  );
+  const newQueue = queueFilter.map((q) => {
+    return {
+      controlNo: q.work.controlNo,
+      chamber: `${q.chamber.code}( ${q.chamber.name} )`,
+      qty: q.operate[operateType].qty,
+      endDate: q.endDate,
+    };
+  });
+  return newQueue;
+}
 
 router.put("/update/:id", (req, res, next) => {
   const { id } = req.params;
