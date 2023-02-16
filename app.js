@@ -38,10 +38,11 @@ let step3 = require("./src/routes/step3");
 let step4 = require("./src/routes/step4");
 let step5 = require("./src/routes/step5");
 let mailer = require("./src/routes/mailer");
+let approver = require("./src/routes/approver");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
-    console.log("Listening on  port " + server.address().port);
+  console.log("Listening on  port " + server.address().port);
 });
 
 app.use(morgan("tiny"));
@@ -71,15 +72,16 @@ app.use("/step3", step3);
 app.use("/step4", step4);
 app.use("/step5", step5);
 app.use("/mail", mailer);
-app.use(function(req, res, next) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "X-Requested-with,Content-Type"
-    );
-    res.setHeader("Access-Conrol-Allow-Credentials", true);
-    next();
+app.use("/approver", approver);
+app.use(function (req, res, next) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-Requested-with,Content-Type"
+  );
+  res.setHeader("Access-Conrol-Allow-Credentials", true);
+  next();
 });
 
 module.exports = app;

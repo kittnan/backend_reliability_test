@@ -45,6 +45,7 @@ router.get("/id/:id", (req, res, next) => {
         nextApprove: "$nextApprove",
         level: "$level",
         comment: "$comment",
+        qeReceive: "$qeReceive",
       },
     },
     {
@@ -108,6 +109,7 @@ router.get("/id/:id", (req, res, next) => {
         queues: "$queues",
         level: "$level",
         comment: "$comment",
+        qeReceive: "$qeReceive",
       },
     },
   ];
@@ -675,22 +677,26 @@ router.get("/sectionRemain", async (req, res, next) => {
     },
   ]);
   const sections = await loopFindUser(requestData);
-  const countSections = sections.reduce((prev, now) => {
-    const foo = prev.find((p) => p.name === now.section);
-    if (foo) {
-      const index = prev.indexOf(foo);
-      foo.value++;
-      prev[index] = foo;
-      return prev;
-    } else {
-      prev.push({
-        name: now.section,
-        value: 1,
-      });
-      return prev;
-    }
-  }, []);
-  res.json(countSections);
+  if (sections && sections.length > 0) {
+    const countSections = sections.reduce((prev, now) => {
+      const foo = prev.find((p) => p.name === now.section);
+      if (foo) {
+        const index = prev.indexOf(foo);
+        foo.value++;
+        prev[index] = foo;
+        return prev;
+      } else {
+        prev.push({
+          name: now.section,
+          value: 1,
+        });
+        return prev;
+      }
+    }, []);
+    res.json(countSections);
+  } else {
+    res.json([]);
+  }
 });
 
 async function loopFindUser(requestData) {
@@ -801,13 +807,15 @@ router.get("/dailyRemain", async (req, res, next) => {
 
   const newQueue = queues.map((q) => {
     const now = q.inspectionTime.filter((time) => {
-      const diff = moment(time.endDate).diff(new Date(), "minute");
+      const minOfDay = 1440;
+      const startDay = moment(new Date()).startOf("day");
+      const diffDay = moment(time.startDate).diff(startDay, "minute");
+      const diff = moment(time.startDate).diff(new Date(), "minute");
       time["diff"] = diff;
       const report = q.reportQE.find((qe) => qe.at === time.at);
       time["report"] = report ? true : false;
-
-      return true;
-      if (diff <= 24) return true;
+      // return true;
+      if (diffDay <= minOfDay) return true;
       return false;
     });
 
