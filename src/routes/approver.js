@@ -14,7 +14,7 @@ router.get("", (req, res, next) => {
 });
 router.get("/id", (req, res, next) => {
   const { id } = req.query;
-  console.log(id);
+  // console.log(id);
   approver.findById(id).exec((err, result) => {
     if (err) {
       res.json(err);

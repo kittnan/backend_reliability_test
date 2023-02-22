@@ -74,7 +74,7 @@ router.get("/section/:section/:level", (req, res, next) => {
   const newSection = JSON.parse(section);
   const newLevel = JSON.parse(level);
 
-  console.log(newSection, newLevel);
+  // console.log(newSection, newLevel);
 
   const condition = [
     {

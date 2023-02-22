@@ -198,7 +198,7 @@ router.get("/table/:userId/:status", async (req, res, next) => {
     .aggregate(condition)
     .sort({ createdAt: -1 })
     .exec((err, result) => {
-      console.log(err, result);
+      // console.log(err, result);
       if (err) res.json(err);
       res.json(result);
     });
@@ -331,7 +331,7 @@ router.get("/tableShowAdmin", async (req, res, next) => {
     .sort({ createdAt: -1 })
     .exec((err, result) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.status(500).json(err);
       } else {
         res.status(200).json(result);
@@ -433,7 +433,7 @@ router.get("/tableShow", async (req, res, next) => {
     .sort({ createdAt: -1 })
     .exec((err, result) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.status(500).json(err);
       } else {
         res.status(200).json(result);
@@ -445,9 +445,9 @@ router.get(
   "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
   async (req, res, next) => {
     const { userId, status, limit, skip, sort, count } = req.params;
-    console.log(req.params);
+    // console.log(req.params);
     const newStatus = JSON.parse(status);
-    console.log(newStatus);
+    // console.log(newStatus);
 
     let approve = await formStep5UserApprove.aggregate([
       {
@@ -569,7 +569,7 @@ router.post("/getByCondition/", (req, res, next) => {
       ...match["$match"],
     };
   }
-  console.log(match);
+  // console.log(match);
   request_form.aggregate([{ ...match }]).exec((err, result) => {
     if (err) {
       res.json(err);
@@ -616,10 +616,9 @@ router.post("/draft", async (req, res, next) => {
 // TODO remain
 router.get("/corporateRemain", async (req, res, next) => {
   const { startDate } = req.query;
-  console.log("startDate", startDate);
+  // console.log("startDate", startDate);
 
-  const foo = new Date(startDate);
-  console.log("corporateRemain", foo);
+  // console.log("corporateRemain", foo);
   const queues = await queue.aggregate([
     {
       $match: {
@@ -789,6 +788,9 @@ router.get("/dailyRemain", async (req, res, next) => {
         customer: {
           $arrayElemAt: ["$step1.customer", 0],
         },
+        purpose: {
+          $arrayElemAt: ["$step2.purpose", 0],
+        },
         testingType: {
           $arrayElemAt: ["$step3", 0],
         },
@@ -810,8 +812,8 @@ router.get("/dailyRemain", async (req, res, next) => {
       const minOfDay = 1440;
       const startDay = moment(new Date()).startOf("day");
       const diffDay = moment(time.startDate).diff(startDay, "minute");
-      const diff = moment(time.startDate).diff(new Date(), "minute");
-      time["diff"] = diff;
+      // const diff = moment(time.startDate).diff(new Date(), "minute");
+      // time["diff"] = diff;
       const report = q.reportQE.find((qe) => qe.at === time.at);
       time["report"] = report ? true : false;
       // return true;
@@ -819,7 +821,7 @@ router.get("/dailyRemain", async (req, res, next) => {
       return false;
     });
 
-    console.log(now);
+    // console.log(now);
     now.sort((a, b) => {
       return new Date(b.endDate) - new Date(a.endDate);
     });
@@ -829,6 +831,7 @@ router.get("/dailyRemain", async (req, res, next) => {
       schedule: now,
       userName: user ? user.name : null,
       userSection: user ? user.section : null,
+      purpose: q.purpose,
     };
   });
 
@@ -837,21 +840,40 @@ router.get("/dailyRemain", async (req, res, next) => {
 
 router.get("/chamberRemain", async (req, res, next) => {
   const { startDate } = req.query;
-  console.log("startDate", startDate);
+  // console.log("startDate", startDate);
 
-  const chambers = await chamber_list.aggregate([
+  const queues = await queue.aggregate([
     {
-      $match: {},
-    },
-    {
-      $lookup: {
-        from: "queues",
-        localField: "code",
-        foreignField: "chamber.code",
-        as: "queue",
+      $match: {
+        endDate: {
+          $gte: new Date(startDate),
+        },
       },
     },
   ]);
+
+  let chambers = await chamber_list.aggregate([
+    {
+      $match: {},
+    },
+    // {
+    //   $lookup: {
+    //     from: "queues",
+    //     localField: "code",
+    //     foreignField: "chamber.code",
+    //     as: "queue",
+    //   },
+    // },
+  ]);
+  chambers = chambers.map((c) => {
+    const findItem = queues.filter((q) => q.chamber.code == c.code);
+    console.log("🚀 ~ findItem:", findItem);
+    return {
+      ...c,
+      queue: findItem.length != 0 ? findItem : [],
+    };
+  });
+  // res.json(chambers);
 
   const mapChamber = chambers.map((c) => {
     const use = c.queue.reduce((prev, now) => {
@@ -870,7 +892,7 @@ router.get("/chamberRemain", async (req, res, next) => {
 
 router.get("/operateRemain", async (req, res, next) => {
   const { startDate } = req.query;
-  console.log("startDate", startDate);
+  // console.log("startDate", startDate);
 
   const operateItem = await operate_item.aggregate([
     {
@@ -938,7 +960,7 @@ router.delete("/delete/", async (req, res, next) => {
   arr.push(await formStep5UserApprove.deleteMany({ requestId: id }));
   Promise.all(arr)
     .then((result) => {
-      res.sendStatus(200);
+      res.json(result);
     })
     .catch((err) => res.json(err));
 });
