@@ -49,7 +49,7 @@ router.delete("/delete/:id", (req, res, next) => {
 
 router.post("/send", async (req, res, next) => {
   const payload = req.body;
-
+  // let ccUser = payload.cc;
   let ccUser = payload.cc.map((s) => ObjectId(s));
   ccUser = await users.aggregate([
     {
@@ -63,7 +63,9 @@ router.post("/send", async (req, res, next) => {
   ccUser = ccUser.map((u) => u.email);
   ccUser = [...new Set(ccUser)];
 
+  // let toUserId = payload.to;
   let toUserId = payload.to.map((s) => ObjectId(s));
+  // console.log(toUserId);
   let toUsers = await users.aggregate([
     {
       $match: {
@@ -76,14 +78,14 @@ router.post("/send", async (req, res, next) => {
 
   toUsers = toUsers.map((u) => u.email);
   toUsers = [...new Set(toUsers)];
-
   const mail = await mailConfig.aggregate([{ $match: {} }]);
 
   let link = genLink(payload.status, payload.formId);
+  let text1 = genText1(payload.status);
 
   let body = `
         <p>
-        Please approve
+       ${text1}
     </p>
     <p>
         Below link
@@ -98,7 +100,7 @@ router.post("/send", async (req, res, next) => {
   if (payload.status.includes("reject")) {
     body = `
         <p>
-        Please edit
+        ${text1}
     </p>
     <p>
         Below link
@@ -107,7 +109,7 @@ router.post("/send", async (req, res, next) => {
         -------------------------------------------------------------
     </p>
     <a href="${link}">
-    click link
+    CLICK
     </a>`;
   }
 
@@ -115,17 +117,25 @@ router.post("/send", async (req, res, next) => {
     host: mail[0].host,
     port: mail[0].port,
     secure: false,
-    auth: mail[0].auth,
+    auth: {
+      user: mail[0].auth.user,
+      pass: mail[0].auth.pass,
+    },
+    // auth: mail[0].auth,
   });
 
-  let info = await transporter.sendMail({
-    from: mail[0].from, // sender address
-    to: toUsers, // list of receivers
-    cc: ccUser,
-    subject: mail[0].subject, // Subject line
-    html: body,
-  });
-  res.json(info);
+  try {
+    let info = await transporter.sendMail({
+      from: mail[0].from, // sender address
+      to: toUsers, // list of receivers
+      cc: ccUser,
+      subject: mail[0].subject, // Subject line
+      html: body,
+    });
+    res.json(info);
+  } catch (error) {
+    console.log("@error", error);
+  }
 });
 
 function genLink(status, formId) {
@@ -189,6 +199,71 @@ function genLink(status, formId) {
       break;
 
     default:
+      break;
+  }
+}
+
+function genText1(statusForm) {
+  switch (statusForm) {
+    case "request_approve":
+      return `Please review and approval request reliability test​`;
+      break;
+    case "qe_window_person":
+      return `Please review request reliability test​`;
+      break;
+    case "qe_engineer":
+      return `Please review and approval request reliability test​`;
+      break;
+    case "qe_engineer2":
+      return `Please review and approval request reliability test​`;
+      break;
+    case "qe_section_head":
+      return `Please review and approval request reliability test`;
+      break;
+    case "request_confirm":
+      return `Approval request reliability test​`;
+      break;
+    case "request_confirm_edited":
+      return `Please review and approval request reliability test​`;
+      break;
+    case "qe_window_person_report":
+      return `Please make report request reliability test​`;
+      break;
+
+    case "reject_request":
+      return `Reject : Request reliability test`;
+      break;
+
+    case "reject_request_approve":
+      return `Reject : Request reliability test`;
+      break;
+
+    case "reject_qe_window_person":
+      return `Reject : Request reliability test`;
+      break;
+
+    case "reject_qe_engineer":
+      return `Reject : Request reliability test`;
+      break;
+
+    // case "reject_request_confirm":
+    //   return `${base}/qe-window-person/chamber?id=${formId}&status=${status}`;
+    //   break;
+
+    case "deleteReport":
+      return `QE delete report`;
+      break;
+
+    case "uploadReport":
+      return `Update result reliability test.​`;
+      break;
+
+    case "finish":
+      return `Completed reliability test.​`;
+      break;
+
+    default:
+      "";
       break;
   }
 }

@@ -617,7 +617,7 @@ router.post("/draft", async (req, res, next) => {
 router.get("/corporateRemain", async (req, res, next) => {
   const { startDate } = req.query;
   // console.log("startDate", startDate);
-
+  // console.log(new Date(startDate));
   // console.log("corporateRemain", foo);
   const queues = await queue.aggregate([
     {
@@ -686,7 +686,7 @@ router.get("/sectionRemain", async (req, res, next) => {
         return prev;
       } else {
         prev.push({
-          name: now.section,
+          name: now?.section,
           value: 1,
         });
         return prev;
@@ -713,7 +713,8 @@ async function loopFindUser(requestData) {
         },
       },
     ]);
-    arr.push(user[0]);
+    // console.log(user);
+    user.length != 0 ? arr.push(user[0]) : false;
     if (i + 1 === requestData.length) return arr;
   }
 }
@@ -852,6 +853,8 @@ router.get("/chamberRemain", async (req, res, next) => {
     },
   ]);
 
+  // res.json(queues);
+
   let chambers = await chamber_list.aggregate([
     {
       $match: {},
@@ -865,9 +868,10 @@ router.get("/chamberRemain", async (req, res, next) => {
     //   },
     // },
   ]);
+  // console.log("🚀 ~ chambers:", chambers);
   chambers = chambers.map((c) => {
-    const findItem = queues.filter((q) => q.chamber.code == c.code);
-    console.log("🚀 ~ findItem:", findItem);
+    const findItem = queues.filter((q) => q?.chamber?.code == c.code);
+    // console.log("🚀 ~ findItem:", findItem);
     return {
       ...c,
       queue: findItem.length != 0 ? findItem : [],
@@ -935,6 +939,71 @@ function loopQueue(queues, operateType, o) {
   });
   return newQueue;
 }
+
+router.get("/reportStatus", async (req, res, next) => {
+  const startDate = moment().startOf("day").toLocaleString();
+  const endDate = moment().endOf("day").toLocaleString();
+  const queues = await queue.aggregate([
+    {
+      $match: {
+        reportQE: {
+          $elemMatch: {
+            endDate: {
+              $gte: new Date(startDate),
+              $lte: new Date(endDate),
+            },
+          },
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "request_forms",
+        localField: "work.controlNo",
+        foreignField: "controlNo",
+        as: "result",
+      },
+    },
+    {
+      $lookup: {
+        from: "formstep1details",
+        localField: "work.requestId",
+        foreignField: "requestId",
+        as: "step1",
+      },
+    },
+    {
+      $project: {
+        reportQE: "$reportQE",
+        model: {
+          $arrayElemAt: ["$step1.modelNo", 0],
+        },
+        size: {
+          $arrayElemAt: ["$step1.size", 0],
+        },
+        customer: {
+          $arrayElemAt: ["$step1.customer", 0],
+        },
+        userId: {
+          $arrayElemAt: ["$result.userId", 0],
+        },
+        controlNo: "$work.controlNo",
+      },
+    },
+  ]);
+
+  const users = await userModel.aggregate([{ $match: {} }]);
+  const newQueue = queues.map((q) => {
+    const user = users.find((u) => u._id == q.userId);
+    return {
+      ...q,
+      userName: user ? user.name : null,
+      userSection: user ? user.section : null,
+    };
+  });
+
+  res.json(newQueue);
+});
 
 router.put("/update/:id", (req, res, next) => {
   const { id } = req.params;
