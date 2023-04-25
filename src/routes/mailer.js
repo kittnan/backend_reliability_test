@@ -4,6 +4,7 @@ const mailConfig = require("../models/mail-config");
 const users = require("../models/user");
 const nodemailer = require("nodemailer");
 const ObjectId = require("mongodb").ObjectID;
+const Step1 = require("../models/form-step1-detail");
 
 router.get("", (req, res, next) => {
   mailConfig.find({}).exec((err, result) => {
@@ -47,6 +48,59 @@ router.delete("/delete/:id", (req, res, next) => {
   });
 });
 
+router.post("/foo", async (req, res, next) => {
+  const doo = await Step1.aggregate([
+    {
+      $match: {
+        controlNo: req.body.controlNo,
+      },
+    },
+  ]);
+  res.json(doo);
+  // let transporter = nodemailer.createTransport({
+  //   host: "smtp.office365.com",
+  //   port: 587,
+  //   secure: false,
+  //   auth: {
+  //     user: "notifications@kyocera.co.th",
+  //     pass: "NRP@&Sep22",
+  //   },
+  //   // auth: mail[0].auth,
+  // });
+
+  // try {
+  //   let info = await transporter.sendMail({
+  //     from: "notifications@kyocera.co.th", // sender address
+  //     to: "kittinan-k@kyocera.co.th", // list of receivers
+  //     cc: [],
+  //     subject: "TEST NEW EMAIL", // Subject line
+  //     html: `
+  //     <p>
+  //     -------------------------------------------------------------
+  //     </p>
+  //     <p>
+  //     This E-mail is automatically sent to you by system. Please do not reply.
+  //     </p>
+  //     <p>
+  //     อีเมลล์นี้เป็นข้อมูลส่งอัตโนมัติโดยระบบ กรุณาอย่าตอบกลับ
+  //     </p>
+  //     <p>
+  //     Please kindly contact
+  //     </p>
+  //     <p>
+  //     กรุณาติดต่อที่
+  //     </p>
+  //     <p>
+  //     QE Tel :1569 , 1109
+  //   E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
+  //   </p>`,
+  //   });
+  //   res.json(info);
+  // } catch (error) {
+  //   console.log("@error", error);
+  // }
+});
+
 router.post("/send", async (req, res, next) => {
   const payload = req.body;
   // let ccUser = payload.cc;
@@ -79,14 +133,45 @@ router.post("/send", async (req, res, next) => {
   toUsers = toUsers.map((u) => u.email);
   toUsers = [...new Set(toUsers)];
   const mail = await mailConfig.aggregate([{ $match: {} }]);
-
+  const step1 = await Step1.aggregate([
+    { $match: { requestId: payload.formId } },
+  ]);
+  // console.log(step1);
+  const detailText = `
+  <p>Request No. : ${step1[0].controlNo}</p>
+  <p>Request Subject : ${
+    step1[0]?.requestSubject ? step1[0]?.requestSubject : "-"
+  }</p>
+  `;
   let link = genLink(payload.status, payload.formId);
-  let text1 = genText1(payload.status);
-
+  let text1 = genText1(payload.status, payload.at);
+  let footer = `
+  <p>
+  -------------------------------------------------------------
+  </p>
+  <p>
+  This E-mail is automatically sent to you by system. Please do not reply.
+  </p>
+  <p>
+  อีเมลล์นี้เป็นข้อมูลส่งอัตโนมัติโดยระบบ กรุณาอย่าตอบกลับ
+  </p>
+  <p>
+  Please kindly contact 
+  </p>
+  <p>
+  กรุณาติดต่อที่
+  </p>
+  <p>
+  QE Tel :1569 , 1109
+E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
+</p>
+  `;
+  console.log("toUsers", toUsers);
   let body = `
         <p>
        ${text1}
     </p>
+    ${detailText}
     <p>
         Below link
     </p>
@@ -95,13 +180,16 @@ router.post("/send", async (req, res, next) => {
     </p>
     <a href="${link}">
     CLICK
-    </a>`;
+    </a>
+    ${footer}
+    `;
 
   if (payload.status.includes("reject")) {
     body = `
         <p>
         ${text1}
     </p>
+    ${detailText}
     <p>
         Below link
     </p>
@@ -110,7 +198,8 @@ router.post("/send", async (req, res, next) => {
     </p>
     <a href="${link}">
     CLICK
-    </a>`;
+    </a>
+    ${footer}`;
   }
 
   let transporter = nodemailer.createTransport({
@@ -165,6 +254,9 @@ function genLink(status, formId) {
     case "qe_window_person_report":
       return `${base}/qe-window-person/report?id=${formId}&status=${status}`;
       break;
+    case "request_confirm_revise":
+      return `${base}/request/confirm?id=${formId}&status=${status}`;
+      break;
 
     case "reject_request":
       return `${base}/request/sheet?id=${formId}&status=${status}`;
@@ -203,7 +295,7 @@ function genLink(status, formId) {
   }
 }
 
-function genText1(statusForm) {
+function genText1(statusForm, at) {
   switch (statusForm) {
     case "request_approve":
       return `Please review and approval request reliability test​`;
@@ -229,6 +321,9 @@ function genText1(statusForm) {
     case "qe_window_person_report":
       return `Please make report request reliability test​`;
       break;
+    case "request_confirm_revise":
+      return `Approval request reliability test​`;
+      break;
 
     case "reject_request":
       return `Reject : Request reliability test`;
@@ -251,11 +346,11 @@ function genText1(statusForm) {
     //   break;
 
     case "deleteReport":
-      return `QE delete report`;
+      return `QE delete report at ${at} Hr.`;
       break;
 
     case "uploadReport":
-      return `Update result reliability test.​`;
+      return `Update result reliability test at ${at} Hr.​`;
       break;
 
     case "finish":

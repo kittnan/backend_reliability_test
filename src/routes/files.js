@@ -4,57 +4,86 @@ const fs = require("fs");
 var fileUpload = require("express-fileupload");
 router.use(fileUpload());
 const reportFn = require("./report_fn");
-router.post("/upload", async(req, res, next) => {
-    let result = [];
-    if (req.files && req.files.Files.length > 0) {
-        let files = req.files.Files;
-        try {
-            for (let i = 0; i < files.length; i++) {
-                const nameSplitter = files[i].name.split("-");
-                const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
-                if (!fs.existsSync(`${process.env.PATH_IMAGE}/${folder}`)) {
-                    fs.mkdirSync(`${process.env.PATH_IMAGE}/${folder}`)
-                }
-                const saveDirectory = `${process.env.PATH_IMAGE}/${folder}/attachment`;
-                const pathDirectory = `${process.env.URL_DOWNLOAD}/${folder}/attachment`;
-                const foo = await reportFn.upload(
-                    files[i],
-                    saveDirectory,
-                    pathDirectory
-                );
-                result.push(foo);
-                if (i + 1 == files.length) {
-                    res.json(result);
-                }
-            }
-        } catch (error) {
-            console.log(error);
-            res.json(error);
-        }
-    } else if (req.files && req.files.Files.length == null) {
-        let files = req.files.Files;
-        const nameSplitter = files.name.split("-");
+
+router.post("/upload", async (req, res, next) => {
+  let result = [];
+  if (req.files && req.files.Files.length > 0) {
+    let files = req.files.Files;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const nameSplitter = files[i].name.split("-");
         const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
         if (!fs.existsSync(`${process.env.PATH_IMAGE}/${folder}`)) {
-            fs.mkdirSync(`${process.env.PATH_IMAGE}/${folder}`)
+          fs.mkdirSync(`${process.env.PATH_IMAGE}/${folder}`);
         }
         const saveDirectory = `${process.env.PATH_IMAGE}/${folder}/attachment`;
         const pathDirectory = `${process.env.URL_DOWNLOAD}/${folder}/attachment`;
-        const foo = await reportFn.upload(files, saveDirectory, pathDirectory);
+        const foo = await reportFn.upload(
+          files[i],
+          saveDirectory,
+          pathDirectory
+        );
         result.push(foo);
-        res.json(result);
-    } else {
-        res.json({ msg: "no file" });
+        if (i + 1 == files.length) {
+          res.json(result);
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      res.json(error);
     }
+  } else if (req.files && req.files.Files.length == null) {
+    let files = req.files.Files;
+    const nameSplitter = files.name.split("-");
+    const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
+    if (!fs.existsSync(`${process.env.PATH_IMAGE}/${folder}`)) {
+      fs.mkdirSync(`${process.env.PATH_IMAGE}/${folder}`);
+    }
+    const saveDirectory = `${process.env.PATH_IMAGE}/${folder}/attachment`;
+    const pathDirectory = `${process.env.URL_DOWNLOAD}/${folder}/attachment`;
+    const foo = await reportFn.upload(files, saveDirectory, pathDirectory);
+    result.push(foo);
+    res.json(result);
+  } else {
+    res.json({ msg: "no file" });
+  }
 });
 
-router.delete("/delete/:name", async(req, res, next) => {
-    const { name } = req.params;
-    const nameSplitter = name.split("-");
-    const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
-    const foo = await reportFn.deleteFile(`${process.env.PATH_IMAGE}/${folder}/attachment/${name}`);
-    res.json(foo);
+router.delete("/delete/:name", async (req, res, next) => {
+  const { name } = req.params;
+  const nameSplitter = name.split("-");
+  const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
+  const foo = await reportFn.deleteFile(
+    `${process.env.PATH_IMAGE}/${folder}/attachment/${name}`
+  );
+  res.json(foo);
 });
+
+router.get("/base64", async (req, res, next) => {
+  const { path } = req.query;
+  if (path) {
+    let src = path.split("/");
+    src = `${process.env.PATH_IMAGE}/${src[4]}/${src[5]}/${src[6]}`;
+    // src = `${process.env.PATH_IMAGE}/${src[3]}/${src[4]}/${src[5]}`;
+    const base64 = await base64Encode(src);
+    // console.log("🚀 ~ base64:", base64);
+    res.json({ data: "data:image/png;base64," + base64 });
+  } else {
+    res.sendStatus(404);
+  }
+});
+
+async function base64Encode(file) {
+  return new Promise((resolve, reject) => {
+    var body = fs.readFileSync(file);
+    // return body.toString('base64');
+    if (body) {
+      resolve(body.toString("base64"));
+    } else {
+      reject();
+    }
+  });
+}
 
 // router.post("/delete", async(req, res, next) => {
 //     const payload = req.body;

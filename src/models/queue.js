@@ -29,6 +29,7 @@ const data = new Schema(
         endDate: Date,
         hr: Number,
         files: [],
+        resultDetail: String,
       },
     ],
     work: {

@@ -16,6 +16,29 @@ router.post("/login", (req, res, next) => {
   );
 });
 
+router.get("/editEmail", async (req, res, next) => {
+  // query User
+  const users = await User.aggregate([{ $match: {} }]);
+  // map user and edit email to "kittinan-k@kyocera.co.th"
+  const arr = users.map((u) => {
+    return {
+      ...u,
+      email: "kittinan-k@kyocera.co.th",
+    };
+  });
+
+  // loop arr and update user
+  for (let i = 0; i < arr.length; i++) {
+    await User.updateOne(
+      { _id: arr[i]._id },
+      { $set: { email: arr[i].email } }
+    );
+    if (i + 1 === arr.length) {
+      res.status(200).send("ok");
+    }
+  }
+});
+
 router.get("/convertAuth", async (req, res, next) => {
   const users = await User.aggregate([{ $match: {} }]);
   const arr = users.map((u) => {
