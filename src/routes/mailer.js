@@ -57,48 +57,6 @@ router.post("/foo", async (req, res, next) => {
     },
   ]);
   res.json(doo);
-  // let transporter = nodemailer.createTransport({
-  //   host: "smtp.office365.com",
-  //   port: 587,
-  //   secure: false,
-  //   auth: {
-  //     user: "notifications@kyocera.co.th",
-  //     pass: "NRP@&Sep22",
-  //   },
-  //   // auth: mail[0].auth,
-  // });
-
-  // try {
-  //   let info = await transporter.sendMail({
-  //     from: "notifications@kyocera.co.th", // sender address
-  //     to: "kittinan-k@kyocera.co.th", // list of receivers
-  //     cc: [],
-  //     subject: "TEST NEW EMAIL", // Subject line
-  //     html: `
-  //     <p>
-  //     -------------------------------------------------------------
-  //     </p>
-  //     <p>
-  //     This E-mail is automatically sent to you by system. Please do not reply.
-  //     </p>
-  //     <p>
-  //     อีเมลล์นี้เป็นข้อมูลส่งอัตโนมัติโดยระบบ กรุณาอย่าตอบกลับ
-  //     </p>
-  //     <p>
-  //     Please kindly contact
-  //     </p>
-  //     <p>
-  //     กรุณาติดต่อที่
-  //     </p>
-  //     <p>
-  //     QE Tel :1569 , 1109
-  //   E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
-  //   </p>`,
-  //   });
-  //   res.json(info);
-  // } catch (error) {
-  //   console.log("@error", error);
-  // }
 });
 
 router.post("/send", async (req, res, next) => {
