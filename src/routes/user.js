@@ -68,6 +68,33 @@ router.get("/", (req, res, next) => {
     }
   });
 });
+
+router.post("/userSectionArray", (req, res, next) => {
+  const data = req.body;
+  // map data be new object
+  const newData = data.map((d) => {
+    return {
+      ...d,
+      section: [d.section],
+    };
+  });
+  // loop newData and update user
+  for (let i = 0; i < newData.length; i++) {
+    User.updateOne(
+      { _id: newData[i]._id },
+      { $set: { section: newData[i].section } }
+    ).exec((err, result) => {
+      if (err) {
+        res.json(err);
+      } else {
+        if (i + 1 === newData.length) {
+          res.json(result);
+        }
+      }
+    });
+  }
+});
+
 router.get("/id/:id", (req, res, next) => {
   const { id } = req.params;
   User.findById(id).exec((err, result) => {
