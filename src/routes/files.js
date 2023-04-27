@@ -59,6 +59,18 @@ router.delete("/delete/:name", async (req, res, next) => {
   res.json(foo);
 });
 
+router.get("/loopFiles", async (req, res, next) => {
+  fs.readdirSync("D:/tempFiles/Reliability").map((file) => {
+    if (fs.existsSync(`D:/tempFiles/Reliability/${file}/report`)) {
+      fs.readdirSync(`D:/tempFiles/Reliability/${file}/report`).map((file2) => {
+        if (file2.split(".").length == 1) {
+          console.log(file2);
+        }
+      });
+    }
+  });
+});
+
 router.get("/base64", async (req, res, next) => {
   const { path } = req.query;
   if (path) {
