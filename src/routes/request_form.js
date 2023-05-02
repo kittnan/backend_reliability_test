@@ -361,7 +361,25 @@ router.get("/tableShowAdmin", async (req, res, next) => {
   //   });
 });
 router.get("/tableShow", async (req, res, next) => {
-  const { userId, status } = req.query;
+  const { userId, status, section } = req.query;
+  console.log(section);
+  let newSection = [];
+  let sectionCon = {
+    $match: {},
+  };
+  newSection = JSON.parse(section);
+  if (newSection && newSection.length != 0) {
+    sectionCon = {
+      $match: {
+        "step1.department": {
+          $in: newSection,
+        },
+      },
+    };
+  }
+
+  console.log(sectionCon);
+
   const approve = await formStep5UserApprove.aggregate([
     {
       $match: {
@@ -376,6 +394,7 @@ router.get("/tableShow", async (req, res, next) => {
       },
     },
   ]);
+
   const requestId = approve.map((ap) => ap.requestId);
   const unique = [...new Set(requestId.map((item) => item))];
   let conStatus = {};
@@ -427,6 +446,7 @@ router.get("/tableShow", async (req, res, next) => {
         as: "step1",
       },
     },
+    sectionCon,
     {
       $lookup: {
         from: "queues",
@@ -448,6 +468,7 @@ router.get("/tableShow", async (req, res, next) => {
       $project: {
         requestId: "$requestId",
         controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
+        section: { $arrayElemAt: ["$step1.department", 0] },
         lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
         modelNo: { $arrayElemAt: ["$step1.modelNo", 0] },
         requestSubject: { $arrayElemAt: ["$step1.requestSubject", 0] },

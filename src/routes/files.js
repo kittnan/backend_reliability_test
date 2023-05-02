@@ -11,6 +11,7 @@ router.post("/upload", async (req, res, next) => {
     let files = req.files.Files;
     try {
       for (let i = 0; i < files.length; i++) {
+        // console.log(files[i].name);
         const nameSplitter = files[i].name.split("-");
         const folder = `${nameSplitter[0]}-${nameSplitter[1]}-${nameSplitter[2]}-${nameSplitter[3]}-${nameSplitter[4]}`;
         if (!fs.existsSync(`${process.env.PATH_IMAGE}/${folder}`)) {

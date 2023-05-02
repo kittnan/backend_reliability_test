@@ -69,8 +69,10 @@ router.get("/", (req, res, next) => {
   });
 });
 
-router.post("/userSectionArray", (req, res, next) => {
-  const data = req.body;
+router.get("/userSectionArray", async (req, res, next) => {
+  const data = await User.aggregate([{ $match: {} }]);
+
+  // const data = req.body;
   // map data be new object
   const newData = data.map((d) => {
     return {
@@ -197,6 +199,21 @@ router.delete("/delete/:id", (req, res, next) => {
       res.json(result);
     }
   });
+});
+
+router.delete("/deleteAll", (req, res, next) => {
+  const { pass } = req.query;
+  if (pass === "1234") {
+    User.deleteMany({}).exec((err, result) => {
+      if (err) {
+        res.json(err);
+      } else {
+        res.json(result);
+      }
+    });
+  } else {
+    res.json({ message: "password incorrect" });
+  }
 });
 
 module.exports = router;

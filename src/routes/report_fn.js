@@ -6,7 +6,7 @@ const fs = require("fs");
 module.exports = {
   upload: async function upload(file, saveDir, path) {
     return new Promise((resolve, reject) => {
-      // console.log(saveDir);
+      // console.log(file);
       if (!fs.existsSync(saveDir)) {
         fs.mkdirSync(saveDir);
       }
