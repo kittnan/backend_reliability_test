@@ -47,6 +47,7 @@ router.get("/id/:id", (req, res, next) => {
         level: "$level",
         comment: "$comment",
         qeReceive: "$qeReceive",
+        followUp: "$followUp",
       },
     },
     {
@@ -111,6 +112,7 @@ router.get("/id/:id", (req, res, next) => {
         level: "$level",
         comment: "$comment",
         qeReceive: "$qeReceive",
+        followUp: "$followUp",
       },
     },
   ];
@@ -292,6 +294,7 @@ router.get("/tableShowAdmin", async (req, res, next) => {
         nextApprove: "$nextApprove",
         createdAt: "$createdAt",
         updatedAt: "$updatedAt",
+        followUp: "$followUp",
       },
     },
     {
@@ -321,6 +324,14 @@ router.get("/tableShowAdmin", async (req, res, next) => {
         as: "step5",
       },
     },
+    {
+      $lookup: {
+        from: "formstep2testpurposes",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "step2",
+      },
+    },
 
     {
       $project: {
@@ -335,6 +346,8 @@ router.get("/tableShowAdmin", async (req, res, next) => {
         createdAt: "$createdAt",
         updatedAt: "$updatedAt",
         queues: "$queues",
+        followUp: "$followUp",
+        purpose: { $arrayElemAt: ["$step2", 0] },
       },
     },
   ];
@@ -362,7 +375,7 @@ router.get("/tableShowAdmin", async (req, res, next) => {
 });
 router.get("/tableShow", async (req, res, next) => {
   const { userId, status, section } = req.query;
-  console.log(section);
+  // console.log(section);
   let newSection = [];
   let sectionCon = {
     $match: {},
@@ -378,7 +391,7 @@ router.get("/tableShow", async (req, res, next) => {
     };
   }
 
-  console.log(sectionCon);
+  // console.log(sectionCon);
 
   const approve = await formStep5UserApprove.aggregate([
     {
@@ -426,6 +439,7 @@ router.get("/tableShow", async (req, res, next) => {
         nextApprove: "$nextApprove",
         createdAt: "$createdAt",
         updatedAt: "$updatedAt",
+        followUp: "$followUp",
       },
     },
     {
@@ -463,6 +477,14 @@ router.get("/tableShow", async (req, res, next) => {
         as: "step5",
       },
     },
+    {
+      $lookup: {
+        from: "formstep2testpurposes",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "step2",
+      },
+    },
 
     {
       $project: {
@@ -479,6 +501,8 @@ router.get("/tableShow", async (req, res, next) => {
         createdAt: "$createdAt",
         updatedAt: "$updatedAt",
         queues: "$queues",
+        followUp: "$followUp",
+        purpose: { $arrayElemAt: ["$step2", 0] },
       },
     },
   ];
@@ -670,7 +694,7 @@ router.post("/draft", async (req, res, next) => {
 
 // TODO remain
 router.get("/corporateRemain", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   // console.log("startDate", startDate);
   // console.log(new Date(startDate));
   // console.log("corporateRemain", foo);
@@ -679,6 +703,7 @@ router.get("/corporateRemain", async (req, res, next) => {
       $match: {
         endDate: {
           $gte: new Date(startDate),
+          $lte: new Date(endDate),
         },
       },
     },
@@ -707,12 +732,13 @@ router.get("/corporateRemain", async (req, res, next) => {
 });
 
 router.get("/sectionRemain", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   const queues = await queue.aggregate([
     {
       $match: {
         endDate: {
           $gte: new Date(startDate),
+          $lte: new Date(endDate),
         },
       },
     },
@@ -729,8 +755,24 @@ router.get("/sectionRemain", async (req, res, next) => {
         },
       },
     },
+    {
+      $lookup: {
+        from: "formstep1details",
+        localField: "controlNo",
+        foreignField: "controlNo",
+        as: "step1",
+      },
+    },
+    {
+      $project: {
+        section: { $arrayElemAt: ["$step1.department", 0] },
+      },
+    },
   ]);
-  const sections = await loopFindUser(requestData);
+  // console.log("requestData", requestData);
+  const sections = requestData.filter((d) => d.section !== undefined);
+
+  // const sections = await loopFindUser(requestData);
   if (sections && sections.length > 0) {
     const countSections = sections.reduce((prev, now) => {
       const foo = prev.find((p) => p.name === now.section);
@@ -775,11 +817,11 @@ async function loopFindUser(requestData) {
 }
 
 router.get("/dailyRemain", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   const startDateNew = moment(startDate).startOf("day").toLocaleString();
-  const endDate = moment(startDate).endOf("day").toLocaleString();
+  const newEndDate = moment(endDate).endOf("day").toLocaleString();
   // const ff = moment(startDate).startOf("day").toLocaleString();
-  console.log(startDateNew, endDate);
+  // console.log(startDateNew, endDate);
   // const startDate = moment().startOf("day").toLocaleString();
   // const endDate = moment().endOf("day").toLocaleString();
   const queues = await queue.aggregate([
@@ -789,7 +831,7 @@ router.get("/dailyRemain", async (req, res, next) => {
           $elemMatch: {
             endDate: {
               $gte: new Date(startDateNew),
-              $lte: new Date(endDate),
+              $lte: new Date(newEndDate),
             },
           },
         },
@@ -872,7 +914,11 @@ router.get("/dailyRemain", async (req, res, next) => {
     const now = q.inspectionTime.filter((time) => {
       const minOfDay = 1440;
       // const startDay = moment(new Date()).startOf("day");
-      const diffDay = moment(time.startDate).diff(startDateNew, "minute");
+      const diffDay = moment(time.startDate).diff(
+        moment(startDateNew),
+        "minute"
+      );
+      // console.log("🚀 ~ diffDay:", diffDay);
       // const diff = moment(time.startDate).diff(new Date(), "minute");
       // time["diff"] = diff;
       const report = q.reportQE.find((qe) => qe.at === time.at);
@@ -900,7 +946,7 @@ router.get("/dailyRemain", async (req, res, next) => {
 });
 
 router.get("/chamberRemain", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   // console.log("startDate", startDate);
 
   const queues = await queue.aggregate([
@@ -908,6 +954,7 @@ router.get("/chamberRemain", async (req, res, next) => {
       $match: {
         endDate: {
           $gte: new Date(startDate),
+          $lte: new Date(endDate),
         },
       },
     },
@@ -955,7 +1002,7 @@ router.get("/chamberRemain", async (req, res, next) => {
 });
 
 router.get("/operateRemain", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   // console.log("startDate", startDate);
 
   const operateItem = await operate_item.aggregate([
@@ -971,6 +1018,7 @@ router.get("/operateRemain", async (req, res, next) => {
       $match: {
         endDate: {
           $gte: new Date(startDate),
+          $lte: new Date(endDate),
         },
       },
     },
@@ -989,10 +1037,11 @@ function loopQueue(queues, operateType, o) {
   const queueFilter = queues.filter(
     (q) => q.operate.status && q.operate[operateType].code === o.code
   );
+  // console.log(queueFilter);
   const newQueue = queueFilter.map((q) => {
     return {
       controlNo: q.work.controlNo,
-      chamber: `${q.chamber.code}( ${q.chamber.name} )`,
+      chamber: `${q.chamber?.code}( ${q.chamber?.name} )`,
       qty: q.operate[operateType].qty,
       endDate: q.endDate,
     };
@@ -1001,9 +1050,11 @@ function loopQueue(queues, operateType, o) {
 }
 
 router.get("/reportStatus", async (req, res, next) => {
-  const { startDate } = req.query;
+  const { startDate, endDate } = req.query;
   const newStartDate = moment(startDate).startOf("day").toLocaleString();
-  const endDate = moment(startDate).endOf("day").toLocaleString();
+  // console.log("🚀 ~ newStartDate:", newStartDate);
+  const newEndDate = moment(endDate).endOf("day").toLocaleString();
+  // console.log("🚀 ~ newEndDate:", newEndDate);
   try {
     const queues = await queue.aggregate([
       {
@@ -1012,7 +1063,7 @@ router.get("/reportStatus", async (req, res, next) => {
             $elemMatch: {
               endDate: {
                 $gte: new Date(newStartDate),
-                $lte: new Date(endDate),
+                $lte: new Date(newEndDate),
               },
             },
           },
@@ -1066,22 +1117,33 @@ router.get("/reportStatus", async (req, res, next) => {
 
     // res.json({ data: queues });
     const users = await userModel.aggregate([{ $match: {} }]);
+
     const newQueue = queues.map((q) => {
       const user = users.find((u) => u._id == q.userId);
-      const nowQueue = q.reportQE.find((r) =>
-        moment(r.endDate).isBetween(newStartDate, endDate)
+      // console.log(
+      //   moment(q.reportQE[0]?.endDate).isBetween(
+      //     moment(newStartDate),
+      //     moment(newEndDate)
+      //   )
+      // );
+      const nowQueue = q.reportQE.find(
+        (r) =>
+          r?.endDate &&
+          moment(r?.endDate).isBetween(moment(newStartDate), moment(newEndDate))
       );
+      // console.log("nowQueue", nowQueue);
       return {
         ...q,
         userName: user ? user.name : null,
         userSection: user ? user.section : null,
-        nowAt: nowQueue.at,
+        nowAt: nowQueue?.at,
       };
     });
+    // console.log("🚀 ~ users:", newQueue);
     const uni = [
       ...new Map(newQueue.map((item) => [item["controlNo"], item])).values(),
     ];
-
+    // console.log(uni);
     res.json(uni);
   } catch (error) {
     res.sendStatus(500);

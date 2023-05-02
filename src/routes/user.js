@@ -16,14 +16,14 @@ router.post("/login", (req, res, next) => {
   );
 });
 
-router.get("/editEmail", async (req, res, next) => {
+router.post("/editEmail", async (req, res, next) => {
   // query User
   const users = await User.aggregate([{ $match: {} }]);
   // map user and edit email to "kittinan-k@kyocera.co.th"
   const arr = users.map((u) => {
     return {
       ...u,
-      email: "kittinan-k@kyocera.co.th",
+      email: req.body.email,
     };
   });
 

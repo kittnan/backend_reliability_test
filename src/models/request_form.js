@@ -19,8 +19,9 @@ const request_form = new Schema(
       date: Date,
       qty: Number,
     },
+    followUp: [],
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false, strict: false }
 );
 
 const UserModule = mongoose.model("request_form", request_form);
