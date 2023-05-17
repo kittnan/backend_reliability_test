@@ -13,7 +13,7 @@ const request_form = new Schema(
       _id: String,
       name: String,
     },
-    comment: String,
+    // comment: [],
     level: Number,
     qeReceive: {
       date: Date,

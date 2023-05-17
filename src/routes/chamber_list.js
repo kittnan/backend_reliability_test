@@ -35,23 +35,29 @@ router.get("/chamber/:value", (req, res, next) => {
 
 router.get("/ready", async (req, res, next) => {
   const { value, startDate, qty } = req.query;
+  let valueArray = JSON.parse(value);
+  console.log("🚀 ~ valueArray:", valueArray);
   try {
     // const { value, startDate, qty } = req.params;
     const chamber = await chamber_list.aggregate([
       {
         $match: {
-          "function.value": Number(value),
+          "function.value": {
+            $in: valueArray,
+          },
         },
       },
     ]);
+    // res.json(chamber);
     const codes = await mapChamberCode(chamber);
     const r_queue = await findChamberQueue(codes, startDate);
     const remain = await findChamberQueueNoGroup(codes, startDate);
     const r_mapChamber = await mapChamber(chamber, r_queue, remain, qty);
     const freeChamber = await filterChamber(r_mapChamber);
-    const r_mapCondition = await mapCondition(freeChamber, value);
+    const r_mapCondition = await mapCondition(freeChamber, valueArray);
     res.json(r_mapCondition);
   } catch (error) {
+    console.log("🚀 ~ error:", error);
     res.json({
       status: false,
       text: error,
@@ -164,30 +170,35 @@ function filterChamber(chamber) {
 
 function mapCondition(chamber, value) {
   return new Promise((resolve) => {
-    resolve(
-      chamber.map((c) => {
-        if (
-          c.remain &&
-          c.remain.length > 0 &&
-          c.remain.find((r) => r.condition.value == value)
-        ) {
-          return {
-            ...c,
-            status: true,
-          };
-        } else if (c.remain && c.remain.length == 0) {
-          return {
-            ...c,
-            status: true,
-          };
-        } else {
-          return {
-            ...c,
-            status: false,
-          };
-        }
-      })
-    );
+    const newChamber = chamber.map((c) => {
+      if (c?.remain?.length == 0) {
+        return {
+          ...c,
+          status: true,
+        };
+      } else if (c?.remain?.length > 0) {
+        c?.remain?.find((r) => {
+          const v1 = Number(r.condition.value);
+          const foundItem = value.find((v) => v == v1);
+          if (foundItem) {
+            return {
+              ...c,
+              status: true,
+            };
+          } else {
+            return {
+              ...c,
+              status: false,
+            };
+          }
+        });
+      } else
+        return {
+          ...c,
+          status: false,
+        };
+    });
+    resolve(newChamber);
   });
 }
 

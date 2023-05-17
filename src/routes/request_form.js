@@ -661,12 +661,15 @@ router.post("/getByCondition/", (req, res, next) => {
 // !new
 router.post("/draft", async (req, res, next) => {
   let payload = req.body;
+  // console.log(payload);
   const resultDuplicate = await checkDuplicateRequestNo(payload.controlNo);
+  // console.log("🚀 ~ resultDuplicate:", resultDuplicate);
   let newControlNo = "";
   if (resultDuplicate.length === 0) {
     newControlNo = payload.controlNo;
   } else {
     const splitStr = payload.controlNo.split("-");
+    // console.log("🚀 ~ splitStr:", splitStr);
     const lastRecord = await request_form
       .aggregate([
         {
@@ -679,14 +682,15 @@ router.post("/draft", async (req, res, next) => {
       .limit(1);
     const oldControlNo = lastRecord[0].controlNo.split("-")[3];
     const oldControlNoNum = Number(oldControlNo) + 1;
-    const oldControlNoStr = oldControlNoNum.toString();
-    let temp = "";
-    if (oldControlNoStr.length == 1) temp = "00" + oldControlNoStr;
-    if (oldControlNoStr.length == 2) temp = "0" + oldControlNoStr;
-    newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${temp}-${splitStr[4]}`;
+    let oldControlNoStr = oldControlNoNum.toString();
+    oldControlNoStr = oldControlNoStr.padStart(3, "0");
+    newControlNo = `${splitStr[0]}-${splitStr[1]}-${splitStr[2]}-${oldControlNoStr}-${splitStr[4]}`;
     payload.controlNo = newControlNo;
+    // console.log("🚀 ~ newControlNo:", newControlNo);
+    // console.log("payload.controlNo", payload.controlNo);
   }
   const createRequestFormResult = await request_form.insertMany(payload);
+  // console.log("🚀 ~ createRequestFormResult:", createRequestFormResult);
   res.json(createRequestFormResult);
 });
 
@@ -831,7 +835,7 @@ router.get("/dailyRemain", async (req, res, next) => {
           $elemMatch: {
             endDate: {
               $gte: new Date(startDateNew),
-              $lte: new Date(newEndDate),
+              // $lte: new Date(newEndDate),
             },
           },
         },
@@ -909,7 +913,7 @@ router.get("/dailyRemain", async (req, res, next) => {
   ]);
 
   const users = await userModel.aggregate([{ $match: {} }]);
-  // res.json(queues);
+  // res.json(users);
   const newQueue = queues.map((q) => {
     const now = q.inspectionTime.filter((time) => {
       const minOfDay = 1440;
@@ -1172,6 +1176,8 @@ router.delete("/delete/", async (req, res, next) => {
   arr.push(await formStep3TestingType.deleteMany({ requestId: id }));
   arr.push(await formStep4TestingCondition.deleteMany({ requestId: id }));
   arr.push(await formStep5UserApprove.deleteMany({ requestId: id }));
+  arr.push(await queue.deleteMany({ "work.requestId": id }));
+  arr.push(await logFlow.deleteMany({ formId: id }));
   Promise.all(arr)
     .then((result) => {
       res.json(result);
