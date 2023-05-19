@@ -39,6 +39,7 @@ let step4 = require("./src/routes/step4");
 let step5 = require("./src/routes/step5");
 let mailer = require("./src/routes/mailer");
 let approver = require("./src/routes/approver");
+let request_revises = require("./src/routes/request_revises");
 
 const port = process.env.PORT;
 const server = app.listen(port, () => {
@@ -73,6 +74,7 @@ app.use("/step4", step4);
 app.use("/step5", step5);
 app.use("/mail", mailer);
 app.use("/approver", approver);
+app.use("/request_revises", request_revises);
 app.use(function (req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");

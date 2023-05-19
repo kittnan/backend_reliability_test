@@ -428,6 +428,13 @@ router.get("/tableShow", async (req, res, next) => {
   if (status && status == "all") {
     conStatus = {};
   }
+  if (status && status == "revises") {
+    conStatus = {
+      status: {
+        $in: ["qe_window_person_report"],
+      },
+    };
+  }
   const condition = [
     {
       $project: {
@@ -485,6 +492,14 @@ router.get("/tableShow", async (req, res, next) => {
         as: "step2",
       },
     },
+    {
+      $lookup: {
+        from: "request_revises",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "request_revises",
+      },
+    },
 
     {
       $project: {
@@ -503,6 +518,7 @@ router.get("/tableShow", async (req, res, next) => {
         queues: "$queues",
         followUp: "$followUp",
         purpose: { $arrayElemAt: ["$step2", 0] },
+        request_revise: { $arrayElemAt: ["$request_revises", 0] },
       },
     },
   ];
