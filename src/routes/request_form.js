@@ -92,6 +92,14 @@ router.get("/id/:id", (req, res, next) => {
     },
     {
       $lookup: {
+        from: "request_revises",
+        localField: "_id",
+        foreignField: "requestId",
+        as: "request_revises",
+      },
+    },
+    {
+      $lookup: {
         from: "queues",
         localField: "_id",
         foreignField: "work.requestId",
@@ -104,6 +112,7 @@ router.get("/id/:id", (req, res, next) => {
         step2: { $arrayElemAt: ["$step2", 0] },
         step3: { $arrayElemAt: ["$step3", 0] },
         step4: { $arrayElemAt: ["$step4", 0] },
+        request_revises: { $arrayElemAt: ["$request_revises", 0] },
         step5: "$step5",
         status: "$status",
         table: "$table",
