@@ -115,7 +115,7 @@ router.get("/revisesTable", async (req, res, next) => {
     },
     {
       $project: {
-        requestId: "$requestId",
+        requestId: "$_id",
         controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
         section: { $arrayElemAt: ["$step1.department", 0] },
         lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
