@@ -55,6 +55,76 @@ router.get("/migrate", async (req, res, next) => {
   }
 });
 
+router.get("/hotfix", async (req, res, next) => {
+  try {
+    const dataQuery = await step3.aggregate([{ $match: {} }]);
+    const newFoo = dataQuery.map((d) => {
+      const data = d.data;
+      const newData = data.map((d1) => {
+        const list = d1.list;
+        const newList = list.map((l) => {
+          if (l.name == "Low Temperature") {
+            return {
+              ...l,
+              value: 1,
+            };
+          }
+          if (l.name == "High Temperature") {
+            return {
+              ...l,
+              value: 2,
+            };
+          }
+          if (l.name == "High Temperature & Humidity") {
+            return {
+              ...l,
+              value: 3,
+            };
+          }
+          if (l.name == "Heat Shock") {
+            return {
+              ...l,
+              value: 6,
+            };
+          }
+          if (l.name == "Vibration") {
+            return {
+              ...l,
+              value: 4,
+            };
+          }
+          return {
+            ...l,
+            value: 0,
+          };
+        });
+        return {
+          ...d1,
+          list: newList,
+        };
+      });
+      return {
+        ...d,
+        data: newData,
+      };
+    });
+    let arr = [];
+    for (let i = 0; i < newFoo.length; i++) {
+      arr.push(
+        await step3.updateOne({ _id: newFoo[i]._id }, { $set: newFoo[i] })
+      );
+      if (i + 1 === newFoo.length) {
+        Promise.all(arr).then((v) => {
+          res.json(v);
+        });
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
+
 router.post("/insert", async (req, res, next) => {
   step3.insertMany(req.body, (err, result) => {
     if (err) {

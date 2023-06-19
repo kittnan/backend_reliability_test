@@ -1,9 +1,16 @@
 let express = require("express");
 let router = express.Router();
-
 const REQUEST_REVISES = require("../models/request_revises");
-const request_form = require("../models/request_form");
+const REQUEST_FORM = require("../models/request_form");
+const STEP1 = require("../models/form-step1-detail");
+const STEP2 = require("../models/form-step2-testPurpose");
+const STEP3 = require("../models/form-step3-testingType");
+const STEP4 = require("../models/form-step4-testingCondition");
+const QUEUES = require("../models/queue");
+
 const ObjectId = require("mongodb").ObjectID;
+
+var mongoose = require("mongoose");
 
 router.get("/", async (req, res, next) => {
   const { id } = req.query;
@@ -27,12 +34,59 @@ router.get("/", async (req, res, next) => {
     res.sendStatus(500).json(errorStr);
   }
 });
+router.get("/ByRequestId", async (req, res, next) => {
+  const { id } = req.query;
+  let con1 = {
+    $match: {},
+  };
+
+  try {
+    if (id) {
+      con1 = {
+        $match: {
+          requestId: id,
+        },
+      };
+    }
+    const resultFind = await REQUEST_REVISES.aggregate([con1]);
+    res.json(resultFind);
+  } catch (error) {
+    console.log(error);
+    const errorStr = JSON.stringify(error);
+    res.sendStatus(500).json(errorStr);
+  }
+});
 
 router.get("/revisesTable", async (req, res, next) => {
-  const { userId } = req.query;
+  const { userId, level } = req.query;
   console.log("🚀 ~ userId:", userId);
+  const newLevel = level ? JSON.parse(level) : [];
+  console.log("🚀 ~ newLevel:", newLevel);
 
-  const requestOngoing = await request_form.aggregate([
+  let conLevel = {
+    $match: {},
+  };
+
+  if (newLevel && newLevel.length != 0) {
+    conLevel = {
+      $match: {
+        $or: [
+          {
+            "request_revises.level": {
+              $in: newLevel,
+            },
+          },
+          {
+            level: {
+              $in: newLevel,
+            },
+          },
+        ],
+      },
+    };
+  }
+
+  const requestOngoing = await REQUEST_FORM.aggregate([
     {
       $match: {
         status: "qe_window_person_report",
@@ -110,9 +164,20 @@ router.get("/revisesTable", async (req, res, next) => {
     },
     {
       $match: {
-        "step5.prevUser._id": userId,
+        $or: [
+          {
+            "step5.prevUser._id": userId,
+          },
+          {
+            "request_revises.nextApprove._id": userId,
+          },
+          {
+            "request_revises.historyApprove._id": userId,
+          },
+        ],
       },
     },
+    conLevel,
     {
       $project: {
         requestId: "$_id",
@@ -127,6 +192,7 @@ router.get("/revisesTable", async (req, res, next) => {
         step4: { $arrayElemAt: ["$step4", 0] },
         step5: "$step5",
         status: "$status",
+        qeReceive: "$qeReceive",
         nextApprove: "$nextApprove",
         createdAt: "$createdAt",
         updatedAt: "$updatedAt",
@@ -176,10 +242,79 @@ router.put("/updateByRequestId/:id", (req, res, next) => {
     }
   );
 });
+router.put("/mergeOverrideForm", async (req, res, next) => {
+  try {
+    const payload = req.body;
+    const { controlNo, requestId } = req.query;
+    let con1 = { $match: {} };
+    let con2 = { $match: {} };
+    if (controlNo) {
+      con1 = {
+        $match: {
+          controlNo: controlNo,
+        },
+      };
+    }
+
+    const queryForm = await REQUEST_FORM.aggregate([con1]);
+    con2 = {
+      $match: {
+        requestId: requestId,
+      },
+    };
+    let con3 = {
+      $match: {
+        "work.requestId": requestId,
+      },
+    };
+    const queryStep1 = await STEP1.aggregate([con1]);
+    const queryStep2 = await STEP2.aggregate([con2]);
+    const queryStep3 = await STEP3.aggregate([con2]);
+    const queryStep4 = await STEP4.aggregate([con2]);
+    const queryQueues = await QUEUES.aggregate([con3]);
+
+    const mergeStep1 = {
+      ...queryStep1[0],
+      ...payload.step1,
+    };
+    const mergeStep2 = {
+      ...queryStep2[0],
+      ...payload.step2,
+    };
+    const mergeStep3 = {
+      ...queryStep3[0],
+      ...payload.step3,
+    };
+
+    const resUpdateStep1 = await STEP1.findOneAndUpdate(
+      { controlNo: "controlNo" },
+      { $set: mergeStep1 }
+    );
+    const resUpdateStep2 = await STEP2.findOneAndUpdate(
+      { requestId: requestId },
+      { $set: mergeStep2 }
+    );
+
+    res.json(resUpdateStep2);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
 
 router.delete("/delete/:id", (req, res, next) => {
   const { id } = req.params;
   REQUEST_REVISES.deleteOne({ _id: id }).exec((err, result) => {
+    if (err) {
+      res.json(err);
+    } else {
+      res.json(result);
+    }
+  });
+});
+router.delete("/deleteByRequestId/:id", (req, res, next) => {
+  const { id } = req.params;
+  REQUEST_REVISES.deleteOne({ requestId: id }).exec((err, result) => {
     if (err) {
       res.json(err);
     } else {

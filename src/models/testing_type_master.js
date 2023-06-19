@@ -19,14 +19,17 @@ const testing_type_master = new Schema(
             },
             value: String,
           },
-          // listItem: [],
+          value: {
+            type: Number,
+            default: 0,
+          },
         },
       ],
       required: false,
     },
     type: String,
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false, strict: false }
 );
 
 const UserModule = mongoose.model("testing_type_master", testing_type_master);

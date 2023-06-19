@@ -55,7 +55,8 @@ router.get("/ready", async (req, res, next) => {
     const r_mapChamber = await mapChamber(chamber, r_queue, remain, qty);
     const freeChamber = await filterChamber(r_mapChamber);
     const r_mapCondition = await mapCondition(freeChamber, valueArray);
-    res.json(r_mapCondition);
+    const filtered = r_mapCondition.filter((a) => a);
+    res.json(filtered);
   } catch (error) {
     console.log("🚀 ~ error:", error);
     res.json({
