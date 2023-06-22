@@ -36,7 +36,6 @@ router.get("/chamber/:value", (req, res, next) => {
 router.get("/ready", async (req, res, next) => {
   const { value, startDate, qty } = req.query;
   let valueArray = JSON.parse(value);
-  console.log("🚀 ~ valueArray:", valueArray);
   try {
     // const { value, startDate, qty } = req.params;
     const chamber = await chamber_list.aggregate([

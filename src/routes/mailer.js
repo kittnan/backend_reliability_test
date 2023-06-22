@@ -124,7 +124,6 @@ router.post("/send", async (req, res, next) => {
 E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
 </p>
   `;
-  console.log("toUsers", toUsers);
   let body = `
         <p>
        ${text1}
@@ -248,6 +247,46 @@ function genLink(status, formId) {
       return `${base}/view-page?id=${formId}&status=${status}`;
       break;
 
+    case "reject_qe_engineer":
+      return `${base}/qe-engineer/approve-request?id=${formId}&status=${status}`;
+      break;
+
+    case "request_revise":
+      return `${base}/approve/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "request_approve_revise":
+      return `${base}/qe-window-person/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "qe_window_person_revise":
+      return `${base}/qe-engineer/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "qe_engineer_revise":
+      return `${base}/qe-engineer/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "qe_engineer_revise2":
+      return `${base}/qe-engineer/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "qe_section_head_revise":
+      return `${base}/qe-section-head/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "request_revise_confirm":
+      return `${base}/request/revises-approve?id=${formId}&status=${status}`;
+      break;
+
+    case "reject_request_revise":
+      return `${base}/request/revises-sheet?id=${formId}&status=${status}`;
+      break;
+
+    case "reject_qe_window_person_revise":
+      return `${base}/qe-window-person/revises-approve?id=${formId}&status=${status}`;
+      break;
+
     default:
       break;
   }
@@ -313,6 +352,42 @@ function genText1(statusForm, at) {
 
     case "finish":
       return `Completed reliability test.​`;
+      break;
+
+    case "request_revise":
+      return `Please review and approval request reliability test​ ( revise ) `;
+      break;
+
+    case "request_approve_revise":
+      return `Please review request reliability test​ ( revise ) `;
+      break;
+
+    case "qe_window_person_revise":
+      return `Please review and approval request reliability test​ ( revise ) `;
+      break;
+
+    case "qe_engineer_revise":
+      return `Please review and approval request reliability test​ ( revise ) `;
+      break;
+
+    case "qe_engineer_revise2":
+      return `Please review and approval request reliability test​ ( revise ) `;
+      break;
+
+    case "qe_section_head_revise":
+      return `Please review and approval request reliability test​ ( revise ) `;
+      break;
+
+    case "request_revise_confirm":
+      return `Completed reliability test. ( revise ) ​`;
+      break;
+
+    case "reject_request_revise":
+      return `Reject : Request reliability test ( revise ) ​`;
+      break;
+
+    case "reject_qe_window_person_revise":
+      return `Reject : Request reliability test ( revise ) ​`;
       break;
 
     default:

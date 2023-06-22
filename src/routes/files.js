@@ -65,7 +65,6 @@ router.get("/loopFiles", async (req, res, next) => {
     if (fs.existsSync(`D:/tempFiles/Reliability/${file}/report`)) {
       fs.readdirSync(`D:/tempFiles/Reliability/${file}/report`).map((file2) => {
         if (file2.split(".").length == 1) {
-          console.log(file2);
         }
       });
     }

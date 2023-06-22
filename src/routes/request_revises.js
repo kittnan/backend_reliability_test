@@ -10,8 +10,6 @@ const QUEUES = require("../models/queue");
 
 const ObjectId = require("mongodb").ObjectID;
 
-var mongoose = require("mongoose");
-
 router.get("/", async (req, res, next) => {
   const { id } = req.query;
   let con1 = {
@@ -48,6 +46,7 @@ router.get("/ByRequestId", async (req, res, next) => {
         },
       };
     }
+    console.log(con1);
     const resultFind = await REQUEST_REVISES.aggregate([con1]);
     res.json(resultFind);
   } catch (error) {
@@ -59,9 +58,7 @@ router.get("/ByRequestId", async (req, res, next) => {
 
 router.get("/revisesTable", async (req, res, next) => {
   const { userId, level } = req.query;
-  console.log("🚀 ~ userId:", userId);
   const newLevel = level ? JSON.parse(level) : [];
-  console.log("🚀 ~ newLevel:", newLevel);
 
   let conLevel = {
     $match: {},
@@ -242,10 +239,11 @@ router.put("/updateByRequestId/:id", (req, res, next) => {
     }
   );
 });
-router.put("/mergeOverrideForm", async (req, res, next) => {
+router.post("/mergeOverrideForm", async (req, res, next) => {
   try {
-    const payload = req.body;
-    const { controlNo, requestId } = req.query;
+    const payload = req.body.data;
+    const controlNo = req.body.controlNo;
+    const requestId = req.body.requestId;
     let con1 = { $match: {} };
     let con2 = { $match: {} };
     if (controlNo) {
@@ -256,7 +254,7 @@ router.put("/mergeOverrideForm", async (req, res, next) => {
       };
     }
 
-    const queryForm = await REQUEST_FORM.aggregate([con1]);
+    // const queryForm = await REQUEST_FORM.aggregate([con1]);
     con2 = {
       $match: {
         requestId: requestId,
@@ -271,7 +269,7 @@ router.put("/mergeOverrideForm", async (req, res, next) => {
     const queryStep2 = await STEP2.aggregate([con2]);
     const queryStep3 = await STEP3.aggregate([con2]);
     const queryStep4 = await STEP4.aggregate([con2]);
-    const queryQueues = await QUEUES.aggregate([con3]);
+    // const queryQueues = await QUEUES.aggregate([con3]);
 
     const mergeStep1 = {
       ...queryStep1[0],
@@ -285,17 +283,79 @@ router.put("/mergeOverrideForm", async (req, res, next) => {
       ...queryStep3[0],
       ...payload.step3,
     };
+    const mergeStep4 = {
+      ...queryStep4[0],
+      ...payload.step4,
+    };
 
-    const resUpdateStep1 = await STEP1.findOneAndUpdate(
-      { controlNo: "controlNo" },
+    const requestFormItem = await REQUEST_FORM.find({
+      controlNo: controlNo,
+    }).lean();
+    const step1Item = await STEP1.find({ controlNo: controlNo }).lean();
+    const step2Item = await STEP2.find({ requestId: requestId }).lean();
+    const step3Item = await STEP3.find({ requestId: requestId }).lean();
+    const step4Item = await STEP4.find({ requestId: requestId }).lean();
+    const requestReviseFormItem = await REQUEST_REVISES.find({
+      requestId: requestId,
+    }).lean();
+
+    const resUpdateRequestForm = await REQUEST_FORM.updateOne(
+      { _id: requestFormItem[0]._id },
+      {
+        $set: {
+          userId: payload.userId,
+          date: payload.date,
+          controlNo: payload.controlNo,
+          corporate: payload.corporate,
+          qeReceive: payload.qeReceive,
+          table: payload.table,
+        },
+      }
+    );
+    const resUpdateStep1 = await STEP1.updateOne(
+      { _id: step1Item[0]._id },
       { $set: mergeStep1 }
     );
-    const resUpdateStep2 = await STEP2.findOneAndUpdate(
-      { requestId: requestId },
+    const resUpdateStep2 = await STEP2.updateOne(
+      { _id: step2Item[0]._id },
       { $set: mergeStep2 }
     );
+    const resUpdateStep3 = await STEP3.updateOne(
+      { _id: step3Item[0]._id },
+      { $set: mergeStep3 }
+    );
+    const resUpdateStep4 = await STEP4.updateOne(
+      { _id: step4Item[0]._id },
+      { $set: mergeStep4 }
+    );
 
-    res.json(resUpdateStep2);
+    const resDeleteQueue = await QUEUES.deleteMany({
+      "work.requestId": requestId,
+    });
+
+    const resInsertQueues = await QUEUES.insertMany(payload.queues);
+
+    const resUpdateRequestReviseForm = await REQUEST_REVISES.updateOne(
+      { _id: requestReviseFormItem[0]._id },
+      {
+        $set: {
+          ...payload,
+          level: 20,
+          status: "finish",
+          nextApprove: null,
+        },
+      }
+    );
+    res.json([
+      resUpdateRequestForm,
+      resUpdateStep1,
+      resUpdateStep2,
+      resUpdateStep3,
+      resUpdateStep4,
+      resDeleteQueue,
+      resInsertQueues,
+      resUpdateRequestReviseForm,
+    ]);
   } catch (error) {
     console.log(error);
     res.sendStatus(500);

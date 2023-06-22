@@ -1294,6 +1294,26 @@ router.post("/count", (req, res, next) => {
   });
 });
 
+router.get("/getByControlNo", async (req, res, next) => {
+  try {
+    const { controlNo } = req.query;
+    let con1 = {
+      $match: {},
+    };
+    if (controlNo) {
+      con1 = {
+        $match: {
+          controlNo: controlNo,
+        },
+      };
+    }
+    const result = await request_form.aggregate([con1, { $count: "sum" }]);
+    res.json(result);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
 async function checkDuplicateRequestNo(controlNo) {
   return await request_form
     .aggregate([

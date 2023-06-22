@@ -4,6 +4,8 @@ let bodyParser = require("body-parser");
 let cors = require("cors");
 let app = express();
 let morgan = require("morgan");
+let compression = require("compression");
+app.use(compression());
 app.use(bodyParser.json());
 app.use(cors());
 const mongoose = require("mongoose");

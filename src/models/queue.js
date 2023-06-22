@@ -11,6 +11,10 @@ const data = new Schema(
         startDate: Date,
         endDate: Date,
         hr: Number,
+        delay: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
     reportTime: [
@@ -64,6 +68,10 @@ const data = new Schema(
       name: String,
     },
     status: String,
+    historyDelayTime: {
+      type: [],
+      default: [],
+    },
   },
   { timestamps: true, versionKey: false }
 );
