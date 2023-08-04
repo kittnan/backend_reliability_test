@@ -46,7 +46,6 @@ router.get("/ByRequestId", async (req, res, next) => {
         },
       };
     }
-    console.log(con1);
     const resultFind = await REQUEST_REVISES.aggregate([con1]);
     res.json(resultFind);
   } catch (error) {
@@ -244,6 +243,7 @@ router.post("/mergeOverrideForm", async (req, res, next) => {
     const payload = req.body.data;
     const controlNo = req.body.controlNo;
     const requestId = req.body.requestId;
+
     let con1 = { $match: {} };
     let con2 = { $match: {} };
     if (controlNo) {
@@ -330,10 +330,17 @@ router.post("/mergeOverrideForm", async (req, res, next) => {
     );
 
     const resDeleteQueue = await QUEUES.deleteMany({
-      "work.requestId": requestId,
+      "work.controlNo": controlNo,
     });
 
-    const resInsertQueues = await QUEUES.insertMany(payload.queues);
+    const new_queues = payload.queues.map((a) => {
+      delete a._id;
+      return {
+        ...a,
+      };
+    });
+
+    const resInsertQueues = await QUEUES.insertMany(new_queues);
 
     const resUpdateRequestReviseForm = await REQUEST_REVISES.updateOne(
       { _id: requestReviseFormItem[0]._id },

@@ -59,6 +59,77 @@ router.post("/foo", async (req, res, next) => {
   res.json(doo);
 });
 
+router.post("/sendEditPlan", async (req, res, next) => {
+  try {
+    const payload = req.body;
+    const mail = await mailConfig.aggregate([{ $match: {} }]);
+    const step1 = await Step1.aggregate([
+      { $match: { requestId: payload.formId } },
+    ]);
+    const to = payload.to.map((s) => ObjectId(s));
+    const toUserObj = await users.aggregate([
+      {
+        $match: {
+          _id: {
+            $in: to,
+          },
+        },
+      },
+    ]);
+    const toUserEmail = toUserObj.map((u) => u.email);
+    let text1 = `<p>Please review request reliability test​</p>`;
+    const detailText = `
+    <p>Request No. : ${step1[0].controlNo}</p>
+    <p>Request Subject : ${
+      step1[0]?.requestSubject ? step1[0]?.requestSubject : "-"
+    }</p>
+    <p>Request Detail. : ${payload.comment}</p>
+    `;
+    let footer = `
+    <p>
+    -------------------------------------------------------------
+    </p>
+    <p>
+    This E-mail is automatically sent to you by system. Please do not reply.
+    </p>
+    <p>
+    อีเมลล์นี้เป็นข้อมูลส่งอัตโนมัติโดยระบบ กรุณาอย่าตอบกลับ
+    </p>
+    <p>
+    Please kindly contact 
+    </p>
+    <p>
+    กรุณาติดต่อที่
+    </p>
+    <p>
+    QE Tel :1569 , 1109
+  E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
+  </p>
+    `;
+    let body = `${text1}${detailText}${footer}`;
+    let transporter = nodemailer.createTransport({
+      host: mail[0].host,
+      port: mail[0].port,
+      secure: false,
+      auth: {
+        user: mail[0].auth.user,
+        pass: mail[0].auth.pass,
+      },
+      // auth: mail[0].auth,
+    });
+    let info = await transporter.sendMail({
+      from: mail[0].from, // sender address
+      to: toUserEmail, // list of receivers
+      cc: payload.cc,
+      subject: mail[0].subject, // Subject line
+      html: body,
+    });
+    res.json(info);
+  } catch (error) {
+    res.sendStatus(500);
+  }
+});
+
 router.post("/send", async (req, res, next) => {
   const payload = req.body;
   // let ccUser = payload.cc;

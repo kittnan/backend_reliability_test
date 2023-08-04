@@ -33,6 +33,32 @@ router.get("/chamber/:value", (req, res, next) => {
     });
 });
 
+router.get("/list", async (req, res, next) => {
+  try {
+    const { value, startDate } = req.query;
+    let valueArray = JSON.parse(value);
+    valueArray = valueArray.map((a) => Number(a));
+    const chamber = await chamber_list.aggregate([
+      {
+        $match: {
+          "function.value": {
+            $in: valueArray,
+          },
+        },
+      },
+    ]);
+    const codes = await mapChamberCode(chamber);
+    const r_queue = await findChamberQueue(codes, startDate);
+    const remain = await findChamberQueueNoGroup(codes, startDate);
+    const r_mapChamber = await mapChamber(chamber, r_queue, remain, 0);
+
+    res.json(r_mapChamber);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
+
 router.get("/ready", async (req, res, next) => {
   const { value, startDate, qty } = req.query;
   let valueArray = JSON.parse(value);

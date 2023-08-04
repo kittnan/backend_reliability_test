@@ -12,6 +12,7 @@ const queue = require("../models/queue");
 const logFlow = require("../models/log_flow");
 const chamber_list = require("../models/chamber_list");
 const operate_item = require("../models/operate-items");
+const backup_request = require("../models/backup-request");
 const moment = require("moment");
 
 const ObjectId = require("mongodb").ObjectID;
@@ -1326,4 +1327,15 @@ async function checkDuplicateRequestNo(controlNo) {
     .limit(1);
 }
 
+// todo backup request
+router.post("/backup_request", async (req, res, next) => {
+  try {
+    const payload = req.body;
+    const result = await backup_request.insertMany(payload);
+    res.json(result);
+  } catch (error) {
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
 module.exports = router;

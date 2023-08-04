@@ -11,9 +11,9 @@ const data = new Schema(
         startDate: Date,
         endDate: Date,
         hr: Number,
-        delay: {
-          type: Number,
-          default: 0,
+        onPlan: {
+          type: Boolean,
+          default: true,
         },
       },
     ],
