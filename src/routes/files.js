@@ -65,6 +65,7 @@ router.get("/loopFiles", async (req, res, next) => {
     if (fs.existsSync(`D:/tempFiles/Reliability/${file}/report`)) {
       fs.readdirSync(`D:/tempFiles/Reliability/${file}/report`).map((file2) => {
         if (file2.split(".").length == 1) {
+          console.log(file2);
         }
       });
     }
@@ -75,16 +76,17 @@ router.get("/base64", async (req, res, next) => {
   const { path } = req.query;
   if (path) {
     let src = path.split("/");
-    src = `${process.env.PATH_IMAGE}/${src[4]}/${src[5]}/${src[6]}`;
-    // src = `${process.env.PATH_IMAGE}/${src[3]}/${src[4]}/${src[5]}`;
+    if (process.env.DATABASE.includes("10.200.90.152:27017")) {
+      src = `${process.env.PATH_IMAGE}/${src[4]}/${src[5]}/${src[6]}`;
+    } else {
+      src = `${process.env.PATH_IMAGE}/${src[3]}/${src[4]}/${src[5]}`;
+    }
     const base64 = await base64Encode(src);
-    // console.log("🚀 ~ base64:", base64);
     res.json({ data: "data:image/png;base64," + base64 });
   } else {
     res.sendStatus(404);
   }
 });
-
 async function base64Encode(file) {
   return new Promise((resolve, reject) => {
     var body = fs.readFileSync(file);

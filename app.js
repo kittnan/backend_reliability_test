@@ -36,6 +36,8 @@ let chamber_list = require("./src/routes/chamber_list");
 let queue = require("./src/routes/queue");
 let queue_revises = require("./src/routes/queue-revises");
 let report = require("./src/routes/report");
+let report2 = require("./src/routes/report2");
+
 let step1 = require("./src/routes/step1");
 let step2 = require("./src/routes/step2");
 let step3 = require("./src/routes/step3");
@@ -45,7 +47,6 @@ let mailer = require("./src/routes/mailer");
 let approver = require("./src/routes/approver");
 let request_revises = require("./src/routes/request_revises");
 let dashboard = require("./src/routes/dashboard");
-
 const port = process.env.PORT;
 const server = app.listen(port, () => {
   console.log("Listening on  port " + server.address().port);
@@ -72,7 +73,8 @@ app.use("/function_chamber", function_chamber);
 app.use("/chamber_list", chamber_list);
 app.use("/queue", queue);
 app.use("/queues_revises", queue_revises);
-app.use("/report", report);
+app.use("/report2", report);
+app.use("/report", report2);
 app.use("/step1", step1);
 app.use("/step2", step2);
 app.use("/step3", step3);
