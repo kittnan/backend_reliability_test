@@ -76,10 +76,11 @@ router.get("/base64", async (req, res, next) => {
   const { path } = req.query;
   if (path) {
     let src = path.split("/");
-    if (process.env.DATABASE.includes("10.200.90.152:27017")) {
-      src = `${process.env.PATH_IMAGE}/${src[4]}/${src[5]}/${src[6]}`;
-    } else {
+    console.log("🚀 ~ file: files.js:79 ~ router.get ~ src:", src)
+    if (process.env.DATABASE.includes("10.200.90.152")) {
       src = `${process.env.PATH_IMAGE}/${src[3]}/${src[4]}/${src[5]}`;
+    } else {
+      src = `${process.env.PATH_IMAGE}/${src[4]}/${src[5]}/${src[6]}`;
     }
     const base64 = await base64Encode(src);
     res.json({ data: "data:image/png;base64," + base64 });
@@ -88,6 +89,7 @@ router.get("/base64", async (req, res, next) => {
   }
 });
 async function base64Encode(file) {
+  console.log("🚀 ~ file: files.js:91 ~ base64Encode ~ file:", file)
   return new Promise((resolve, reject) => {
     var body = fs.readFileSync(file);
     // return body.toString('base64');
