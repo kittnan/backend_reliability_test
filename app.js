@@ -4,8 +4,9 @@ let bodyParser = require("body-parser");
 let cors = require("cors");
 let app = express();
 let morgan = require("morgan");
-// let compression = require("compression");
-// app.use(compression());
+let compression = require("compression");
+app.use(compression());
+
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
@@ -87,10 +88,7 @@ app.use("/dashboard", dashboard);
 app.use(function (req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-Requested-with,Content-Type"
-  );
+  res.setHeader("Access-Control-Allow-Headers", "X-Requested-with,Content-Type");
   res.setHeader("Access-Conrol-Allow-Credentials", true);
   next();
 });
