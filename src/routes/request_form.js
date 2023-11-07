@@ -362,9 +362,117 @@ router.get("/tableShowAdmin", async (req, res, next) => {
     },
   ];
   try {
-    const request = await request_form
-      .aggregate(condition)
-      .sort({ createdAt: -1 });
+    const request = await request_form.aggregate(condition).sort({ createdAt: -1 });
+
+    res.status(200).json(request);
+  } catch (error) {
+    res.status(500).json(err);
+  }
+
+  // request_form
+  //   .aggregate(condition)
+  //   .sort({ createdAt: -1 })
+  //   .exec((err, result) => {
+  //     if (err) {
+  //       // console.log(err);
+  //       res.status(500).json(err);
+  //     } else {
+  //       res.status(200).json(result);
+  //     }
+  //   });
+});
+router.get("/tableShowGuest", async (req, res, next) => {
+  const { status } = req.query;
+
+  let conStatus = {};
+  const start = moment().startOf("day").toISOString();
+  const end = moment().endOf("day").toISOString();
+  if (status && status == "ongoing") {
+    conStatus = {
+      status: {
+        $nin: ["cancel", "finish", "draft"],
+      },
+    };
+  }
+  if (status && status == "finish") {
+    conStatus = {
+      status: {
+        $in: ["finish", "closed"],
+      },
+    };
+  }
+  if (status && status == "all") {
+    conStatus = {};
+  }
+  const condition = [
+    {
+      $project: {
+        requestId: {
+          $toString: "$_id",
+        },
+        status: "$status",
+        nextApprove: "$nextApprove",
+        createdAt: "$createdAt",
+        updatedAt: "$updatedAt",
+        followUp: "$followUp",
+      },
+    },
+    {
+      $match: conStatus,
+    },
+    {
+      $lookup: {
+        from: "formstep1details",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "step1",
+      },
+    },
+    {
+      $lookup: {
+        from: "queues",
+        localField: "requestId",
+        foreignField: "work.requestId",
+        as: "queues",
+      },
+    },
+    {
+      $lookup: {
+        from: "formstep5userapproves",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "step5",
+      },
+    },
+    {
+      $lookup: {
+        from: "formstep2testpurposes",
+        localField: "requestId",
+        foreignField: "requestId",
+        as: "step2",
+      },
+    },
+
+    {
+      $project: {
+        requestId: "$requestId",
+        controlNo: { $arrayElemAt: ["$step1.controlNo", 0] },
+        lotNo: { $arrayElemAt: ["$step1.lotNo", 0] },
+        modelNo: { $arrayElemAt: ["$step1.modelNo", 0] },
+        requestSubject: { $arrayElemAt: ["$step1.requestSubject", 0] },
+        step5: "$step5",
+        status: "$status",
+        nextApprove: "$nextApprove",
+        createdAt: "$createdAt",
+        updatedAt: "$updatedAt",
+        queues: "$queues",
+        followUp: "$followUp",
+        purpose: { $arrayElemAt: ["$step2", 0] },
+      },
+    },
+  ];
+  try {
+    const request = await request_form.aggregate(condition).sort({ createdAt: -1 });
 
     res.status(200).json(request);
   } catch (error) {
@@ -546,25 +654,22 @@ router.get("/tableShow", async (req, res, next) => {
     });
 });
 // TODO get to table manage
-router.get(
-  "/tableManage/:userId/:status/:limit/:skip/:sort/:count",
-  async (req, res, next) => {
-    const { userId, status, limit, skip, sort, count } = req.params;
-    // console.log(req.params);
-    const newStatus = JSON.parse(status);
-    // console.log(newStatus);
+router.get("/tableManage/:userId/:status/:limit/:skip/:sort/:count", async (req, res, next) => {
+  const { userId, status, limit, skip, sort, count } = req.params;
+  // console.log(req.params);
+  const newStatus = JSON.parse(status);
+  // console.log(newStatus);
 
-    let approve = await formStep5UserApprove.aggregate([
-      {
-        $match: {
-          userId: userId,
-        },
+  let approve = await formStep5UserApprove.aggregate([
+    {
+      $match: {
+        userId: userId,
       },
-    ]);
+    },
+  ]);
 
-    res.json(approve);
-  }
-);
+  res.json(approve);
+});
 
 router.get("/condition/:userId/:status", (req, res, next) => {
   let { userId, status } = req.params;
@@ -944,10 +1049,7 @@ router.get("/dailyRemain", async (req, res, next) => {
     const now = q.inspectionTime.filter((time) => {
       const minOfDay = 1440;
       // const startDay = moment(new Date()).startOf("day");
-      const diffDay = moment(time.startDate).diff(
-        moment(startDateNew),
-        "minute"
-      );
+      const diffDay = moment(time.startDate).diff(moment(startDateNew), "minute");
       // console.log("🚀 ~ diffDay:", diffDay);
       // const diff = moment(time.startDate).diff(new Date(), "minute");
       // time["diff"] = diff;
@@ -1064,9 +1166,7 @@ router.get("/operateRemain", async (req, res, next) => {
   res.json(newOperate);
 });
 function loopQueue(queues, operateType, o) {
-  const queueFilter = queues.filter(
-    (q) => q.operate.status && q.operate[operateType].code === o.code
-  );
+  const queueFilter = queues.filter((q) => q.operate.status && q.operate[operateType].code === o.code);
   // console.log(queueFilter);
   const newQueue = queueFilter.map((q) => {
     return {
@@ -1156,11 +1256,7 @@ router.get("/reportStatus", async (req, res, next) => {
       //     moment(newEndDate)
       //   )
       // );
-      const nowQueue = q.reportQE.find(
-        (r) =>
-          r?.endDate &&
-          moment(r?.endDate).isBetween(moment(newStartDate), moment(newEndDate))
-      );
+      const nowQueue = q.reportQE.find((r) => r?.endDate && moment(r?.endDate).isBetween(moment(newStartDate), moment(newEndDate)));
       // console.log("nowQueue", nowQueue);
       return {
         ...q,
@@ -1170,9 +1266,7 @@ router.get("/reportStatus", async (req, res, next) => {
       };
     });
     // console.log("🚀 ~ users:", newQueue);
-    const uni = [
-      ...new Map(newQueue.map((item) => [item["controlNo"], item])).values(),
-    ];
+    const uni = [...new Map(newQueue.map((item) => [item["controlNo"], item])).values()];
     // console.log(uni);
     res.json(uni);
   } catch (error) {
@@ -1182,15 +1276,13 @@ router.get("/reportStatus", async (req, res, next) => {
 
 router.put("/update/:id", (req, res, next) => {
   const { id } = req.params;
-  request_form
-    .updateMany({ _id: id }, { $set: req.body })
-    .exec((err, result) => {
-      if (err) {
-        res.json(err);
-      } else {
-        res.json(result);
-      }
-    });
+  request_form.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
+    if (err) {
+      res.json(err);
+    } else {
+      res.json(result);
+    }
+  });
 });
 
 router.delete("/delete/", async (req, res, next) => {
@@ -1243,23 +1335,15 @@ router.delete("/deleteAll/", async (req, res, next) => {
   if (request.length > 0) {
     for (let index = 0; index < request.length; index++) {
       arr.push(await request_form.deleteMany({ _id: request[index].id }));
-      arr.push(
-        await formStep1Detail.deleteMany({ requestId: request[index].id })
-      );
-      arr.push(
-        await formStep2TestPurpose.deleteMany({ requestId: request[index].id })
-      );
-      arr.push(
-        await formStep3TestingType.deleteMany({ requestId: request[index].id })
-      );
+      arr.push(await formStep1Detail.deleteMany({ requestId: request[index].id }));
+      arr.push(await formStep2TestPurpose.deleteMany({ requestId: request[index].id }));
+      arr.push(await formStep3TestingType.deleteMany({ requestId: request[index].id }));
       arr.push(
         await formStep4TestingCondition.deleteMany({
           requestId: request[index].id,
         })
       );
-      arr.push(
-        await formStep5UserApprove.deleteMany({ requestId: request[index].id })
-      );
+      arr.push(await formStep5UserApprove.deleteMany({ requestId: request[index].id }));
       arr.push(await queue.deleteMany({ "work.requestId": request[index].id }));
       if (index + 1 == request.length) {
         Promise.all(arr)
