@@ -27,7 +27,6 @@ router.post("/auth", async (req, res, next) => {
         {
           $match: {
             username: adAcc.data.description,
-            password: adAcc.data.description,
           },
         },
       ]);
