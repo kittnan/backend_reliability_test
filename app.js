@@ -38,6 +38,7 @@ let queue = require("./src/routes/queue");
 let queue_revises = require("./src/routes/queue-revises");
 let report = require("./src/routes/report");
 let report2 = require("./src/routes/report2");
+let LOGIN = require("./src/routes/login.js");
 
 let step1 = require("./src/routes/step1");
 let step2 = require("./src/routes/step2");
@@ -85,6 +86,7 @@ app.use("/mail", mailer);
 app.use("/approver", approver);
 app.use("/request_revises", request_revises);
 app.use("/dashboard", dashboard);
+app.use("/login", LOGIN);
 app.use(function (req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST ,PUT ,DELETE");
