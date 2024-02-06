@@ -67,7 +67,11 @@ router.post("/insert", async (req, res, next) => {
           }
         }
       } else {
-        return { insertOne: item }
+        return {
+          insertOne: {
+            document: item
+          }
+        }
       }
     })
     const data = await TRACKING_OPERATE.bulkWrite(form);
