@@ -54,11 +54,23 @@ router.post("/insert", async (req, res, next) => {
   try {
     const prevData = await TRACKING_OPERATE.aggregate([
       {
-        $match:{}
+        $match: {}
       }
     ])
-    const form = req.body.filter(obj=>!prevData.some(pData=> pData.code == obj.code))
-    const data = await TRACKING_OPERATE.insertMany(form);
+    let payload = req.body
+    const form = payload.map(item => {
+      if (prevData.some(prev => prev.code == item.code)) {
+        return {
+          updateOne: {
+            filter: { code: item.code },
+            update: { $set: item }
+          }
+        }
+      } else {
+        return { insertOne: item }
+      }
+    })
+    const data = await TRACKING_OPERATE.bulkWrite(form);
     res.json(data);
   } catch (error) {
     console.log("🚀 ~ error:", error);
