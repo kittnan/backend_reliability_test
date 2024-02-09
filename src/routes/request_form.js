@@ -1276,6 +1276,7 @@ router.get("/reportStatus", async (req, res, next) => {
 
 router.put("/update/:id", (req, res, next) => {
   const { id } = req.params;
+  delete req.body._id
   request_form.updateMany({ _id: id }, { $set: req.body }).exec((err, result) => {
     if (err) {
       res.json(err);
@@ -1283,6 +1284,20 @@ router.put("/update/:id", (req, res, next) => {
       res.json(result);
     }
   });
+});
+
+router.put("/updateControlNo/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    delete req.body._id
+    await request_form.updateOne({ _id: id }, { $set: { controlNo: req.body.controlNo } })
+    await formStep1Detail.updateOne({ requestId: id }, { $set: { controlNo: req.body.controlNo } })
+    const resData = await queue.updateMany({ "work.requestId": id }, { $set: { "work.controlNo": req.body.controlNo } })
+    res.json(resData)
+  } catch (error) {
+    console.log("🚀 ~ error:", error)
+    res.json(error)
+  }
 });
 
 router.delete("/delete/", async (req, res, next) => {
