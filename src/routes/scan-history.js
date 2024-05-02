@@ -139,7 +139,7 @@ router.get("/hold", async (req, res, next) => {
       const end = moment(item.endDate)
       const now = moment()
       if (now.isBetween(start, end)) {
-        const diff = end.diff(now,'day')
+        const diff = end.diff(now, 'day')
         item.statusText = diff
       }
       return item
@@ -182,5 +182,26 @@ router.delete("/delete/:id", (req, res, next) => {
     }
   });
 });
+
+router.delete('/deleteAllByCode', async (req, res, next) => {
+  try {
+    let { code } = req.query
+    let result = await SCAN_HISTORY.deleteMany({ code: code })
+    res.json(result)
+  } catch (error) {
+    console.log("🚀 ~ error:", error)
+    res.sendStatus(500)
+  }
+})
+router.delete('/deleteByCode', async (req, res, next) => {
+  try {
+    let { code, status } = req.query
+    let result = await SCAN_HISTORY.deleteMany({ code: code, status: status })
+    res.json(result)
+  } catch (error) {
+    console.log("🚀 ~ error:", error)
+    res.sendStatus(500)
+  }
+})
 
 module.exports = router;

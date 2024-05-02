@@ -50,6 +50,21 @@ router.post("/upload", async (req, res, next) => {
     res.json({ msg: "no file" });
   }
 });
+
+router.post("/uploadTemplate", async (req, res, next) => {
+  try {
+    const saveDirectory = `C:/wamp64/www/reliability/assets/excel`;
+    const foo = await reportFn.upload(
+      files[i],
+      saveDirectory,
+      ''
+    );
+    res.json(foo)
+  } catch (error) {
+    console.log("🚀 ~ error:", error)
+    res.json(error);
+  }
+})
 router.delete("/delete/:name", async (req, res, next) => {
   const { name } = req.params;
   const nameSplitter = name.split("-");
