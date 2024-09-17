@@ -5,7 +5,7 @@ let fn = require("./queue_fn");
 
 const queue = require("../models/queue");
 const chamber_list = require("../models/chamber_list");
-const operate_items = require("../models/operate-items");
+const formStep2 = require("../models/form-step2-testPurpose");
 
 router.get("", (req, res, next) => {
     queue.find({}).exec((err, result) => {
@@ -24,7 +24,7 @@ router.get("/formId/:requestId", (req, res, next) => {
             $match: {
                 "work.requestId": requestId,
             },
-        }, ])
+        },])
         .exec((err, result) => {
             if (err) {
                 res.json(err);
@@ -34,6 +34,43 @@ router.get("/formId/:requestId", (req, res, next) => {
         });
 });
 
+router.get("/getByMEV", async (req, res, next) => {
+    try {
+        let { MEV_NO } = req.query
+        let con = [
+            {
+                $match: {}
+            }
+        ]
+
+        if (MEV_NO) {
+            con.push(
+                {
+                    $match: {
+                        "description.value": MEV_NO
+                    }
+                }
+            )
+            con.push({
+                $lookup: {
+                    from: "queues",
+                    localField: "requestId",
+                    foreignField: "work.requestId",
+                    as: "functions"
+                }
+            }
+            )
+            let data = await formStep2.aggregate(con)
+            res.json(data)
+        } else {
+            throw ''
+        }
+    } catch (error) {
+        console.log("🚀 ~ error:", error)
+        res.sendStatus(500)
+    }
+});
+
 async function checkStateChamber(code, status) {
     return await chamber_list
         .aggregate([{
@@ -41,10 +78,10 @@ async function checkStateChamber(code, status) {
                 code: code,
                 status: status,
             },
-        }, ])
+        },])
         .limit(1);
 }
-router.post("/insert", async(req, res, next) => {
+router.post("/insert", async (req, res, next) => {
     queue.insertMany(req.body, (err, result) => {
         if (err) {
             res.json(err);
@@ -53,7 +90,7 @@ router.post("/insert", async(req, res, next) => {
         }
     });
 });
-router.post("/check", async(req, res, next) => {
+router.post("/check", async (req, res, next) => {
     let result = [];
     let data = req.body;
     try {
@@ -160,7 +197,7 @@ router.put("/update/:id", (req, res, next) => {
         }
     });
 });
-router.put("/updateMany/", async(req, res, next) => {
+router.put("/updateMany/", async (req, res, next) => {
     try {
         const data = req.body;
         for (let index = 0; index < data.length; index++) {
