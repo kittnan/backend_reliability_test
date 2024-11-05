@@ -207,7 +207,7 @@ E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
         -------------------------------------------------------------
     </p>
     <a href="${link}">
-    CLICK
+    Reliability System
     </a>
     ${footer}
     `;
@@ -225,7 +225,7 @@ E-mail : phanutchakorn-s@kyocera.co.th, sangjan-j@kyocera.co.th
         -------------------------------------------------------------
     </p>
     <a href="${link}">
-    CLICK
+    Reliability System
     </a>
     ${footer}`;
   }

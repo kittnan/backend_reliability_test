@@ -15,6 +15,7 @@ const data = new Schema(
           type: Boolean,
           default: true,
         },
+        pass: Boolean
       },
     ],
     reportTime: [
@@ -72,6 +73,18 @@ const data = new Schema(
       type: [],
       default: [],
     },
+    scans:{
+      default:[],
+      type: []
+    },
+    total_hour:{
+      default:0,
+      type:Number
+    },
+    stage:{
+      type:Number,
+      default:0
+    }
   },
   { timestamps: true, versionKey: false }
 );

@@ -1,20 +1,30 @@
 let express = require("express");
 let router = express.Router();
+const ObjectId = require("mongodb").ObjectID;
 
 const SCAN_HISTORY = require("../models/scan-history");
 const moment = require("moment");
 
+
+
 router.get("", async (req, res, next) => {
   try {
-    let { runNo, code, status, conditionValue, conditionName } = req.query;
+    let { runNo, code, status, conditionValue, conditionName, queue_id } = req.query;
     let con = [
       {
         $match: {},
       },
     ];
+    if (queue_id) {
+      queue_id = new ObjectId(queue_id)
+      con.push({
+        $match: {
+          queue_id: queue_id
+        },
+      });
+    }
     if (runNo) {
       runNo = JSON.parse(runNo);
-      console.log("🚀 ~ runNo:", runNo)
       con.push({
         $match: {
           runNo: {
@@ -73,14 +83,14 @@ router.get("", async (req, res, next) => {
         },
       });
     }
-    con.push({
-      '$lookup': {
-        'from': 'queues',
-        'localField': 'runNo',
-        'foreignField': 'work.controlNo',
-        'as': 'queues'
-      }
-    })
+    // con.push({
+    //   '$lookup': {
+    //     'from': 'queues',
+    //     'localField': 'runNo',
+    //     'foreignField': 'work.controlNo',
+    //     'as': 'queues'
+    //   }
+    // })
 
     const data = await SCAN_HISTORY.aggregate(con);
     res.json(data);

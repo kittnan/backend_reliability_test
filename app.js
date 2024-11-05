@@ -127,6 +127,9 @@ app.use("/scan-history", scan_history);
 let TRACKING_OPERATE = require("./src/routes/tracking-operate");
 app.use("/tracking-operate", TRACKING_OPERATE);
 
+let EQUIPMENT = require("./src/routes/equipment");
+app.use("/equipment", EQUIPMENT);
+
 const port = process.env.PORT;
 const server = app.listen(port, () => {
   console.log("Listening on  port " + server.address().port);

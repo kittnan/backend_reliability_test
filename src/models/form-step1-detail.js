@@ -22,6 +22,7 @@ const formStep1Detail = new Schema(
     sampleDescription: String,
     sampleSentToQE_withinDate: Date,
     size: String,
+    sampleSendQty: Number,
   },
   { timestamps: true, versionKey: false, strict: true }
 );
