@@ -47,7 +47,7 @@ router.get("/getByMEV", async (req, res, next) => {
             con.push(
                 {
                     $match: {
-                        "description.value": MEV_NO
+                        "description.value": new RegExp(MEV_NO, "i")
                     }
                 }
             )
